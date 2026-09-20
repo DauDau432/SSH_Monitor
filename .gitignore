@@ -1,0 +1,21 @@
+# Runtime configuration (contains SSH/proxy credentials)
+servers.json
+
+# Local binaries and build output
+ssh-monitor
+ssh-monitor.exe
+*.exe
+bin/
+dist/
+
+# Local tool/editor state
+.claude/
+.vscode/
+.idea/
+
+# Logs, coverage, temporary files
+*.log
+coverage.out
+*.tmp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,3737 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH Monitor — High-Performance VPS Monitor</title>
+    <meta name="description" content="Crisp, high-contrast, agentless VPS monitoring & cluster management inspired by SSH Workbench">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================================
+           SSH Workbench Theme — High Contrast, Crisp Dark Slate
+           (Tuyệt đối không bị mờ, chữ trắng sáng 100%, nét như in)
+           ============================================================ */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Tailwind / Shadcn Slate Palette (Exact Sampled Colors from SSH Workbench) */
+            --bg-body: #020817;
+            --bg-sidebar: #020817;
+            --bg-navbar: #020817;
+            --bg-surface: #020817;
+            --bg-card: #020817;
+            --bg-card-hover: #0f172a;
+            --bg-table-header: #1e293b;
+            --bg-track: #1e293b;
+            --bg-pill: #0f172a;
+            --bg-pill-hover: #1e293b;
+
+            /* Crisp Slate 800 Borders */
+            --border-crisp: #1e293b;
+            --border-muted: #1e293b;
+            --border-hover: #334155;
+            --border-active: #3b82f6;
+
+            /* High Contrast Typography */
+            --text-white: #ffffff;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --text-dark: #475569;
+
+            /* Vivid Accent Colors */
+            --neon-green: #22c55e;
+            --neon-green-glow: rgba(34, 197, 94, 0.4);
+            --neon-emerald: #22c55e;
+            --neon-cyan: #06b6d4;
+            --neon-amber: #eab308;
+            --neon-red: #ef4444;
+            --neon-violet: #a855f7;
+            --neon-blue: #3b82f6;
+
+            /* Fonts */
+            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
+        }
+
+        html {
+            font-size: 15px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.45;
+            overflow-x: hidden;
+        }
+
+        .workbench-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ============================================================
+           SIDEBAR (Menu trái phong cách Workbench)
+           ============================================================ */
+        .workbench-sidebar {
+            width: 230px;
+            min-width: 230px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-crisp);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            user-select: none;
+            z-index: 90;
+        }
+
+        .sidebar-brand {
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-crisp);
+        }
+
+        .brand-logo-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .brand-logo-icon svg { width: 16px; height: 16px; }
+
+        .brand-text {
+            font-size: 0.88rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--text-white);
+            text-transform: uppercase;
+        }
+
+        .sidebar-nav-list {
+            padding: 14px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-section-heading {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-dark);
+            padding: 8px 10px 4px;
+        }
+
+        .nav-link-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 120ms ease, color 120ms ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-link-left {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .nav-link-btn svg {
+            width: 17px;
+            height: 17px;
+            color: var(--text-muted);
+        }
+
+        .nav-link-btn:hover {
+            background-color: var(--bg-card-hover);
+            color: var(--text-white);
+        }
+
+        .nav-link-btn:hover svg { color: var(--text-white); }
+
+        .nav-link-btn.active {
+            background-color: #141c2c;
+            color: var(--text-white);
+            border-color: #1e293f;
+            font-weight: 600;
+        }
+
+        .nav-link-btn.active svg { color: var(--neon-cyan); }
+
+        .count-badge {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background-color: var(--bg-track);
+            color: var(--text-secondary);
+        }
+
+        .nav-link-btn.active .count-badge {
+            background-color: rgba(6, 182, 212, 0.2);
+            color: var(--neon-cyan);
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer-box {
+            padding: 14px;
+            border-top: 1px solid var(--border-crisp);
+            background-color: #080c13;
+        }
+
+        .live-status-pill {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-crisp);
+            font-size: 0.78rem;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green-glow);
+            animation: liveGlow 2s infinite ease-in-out;
+        }
+
+        @keyframes liveGlow {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.7; }
+        }
+
+        .live-dot.offline { background-color: var(--neon-red); box-shadow: none; animation: none; }
+
+        /* ============================================================
+           MAIN WORKBENCH AREA
+           ============================================================ */
+        .workbench-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background-color: var(--bg-body);
+        }
+
+        /* TOPBAR */
+        .workbench-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 80;
+            background-color: var(--bg-navbar);
+            border-bottom: 1px solid var(--border-crisp);
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .topbar-left-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .view-title-tag {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-white);
+            letter-spacing: -0.01em;
+            margin-right: 6px;
+        }
+
+        .select-cluster-dropdown, .select-interval-dropdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-white);
+            font-family: var(--font-ui);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 120ms ease, background 120ms ease;
+        }
+
+        .select-cluster-dropdown:hover, .select-interval-dropdown:hover {
+            border-color: var(--border-hover);
+            background-color: var(--bg-pill-hover);
+        }
+
+        .select-interval-dropdown {
+            font-family: var(--font-mono);
+            color: var(--neon-green);
+        }
+
+        .topbar-search {
+            position: relative;
+            width: 240px;
+        }
+
+        .topbar-search input {
+            width: 100%;
+            padding: 6px 10px 6px 30px;
+            border-radius: 6px;
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-white);
+            font-size: 0.8rem;
+            outline: none;
+            transition: border-color 120ms ease;
+        }
+
+        .topbar-search input:focus {
+            border-color: var(--neon-cyan);
+            background-color: var(--bg-card);
+        }
+
+        .topbar-search svg {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        /* Action Buttons */
+        .topbar-right-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-icon-refresh {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 120ms ease;
+        }
+
+        .btn-icon-refresh:hover {
+            background-color: var(--bg-pill-hover);
+            color: var(--text-white);
+            border-color: var(--border-hover);
+        }
+
+        .btn-icon-refresh svg { width: 15px; height: 15px; }
+
+        .btn-create-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            background-color: #ef4444;
+            border: 1px solid #ef4444;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 120ms ease;
+        }
+
+        .btn-create-group:hover {
+            background-color: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .btn-create-server {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            background-color: #ef4444;
+            border: 1px solid #ef4444;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 120ms ease;
+        }
+
+        .btn-create-server:hover {
+            background-color: #dc2626;
+            border-color: #dc2626;
+        }
+
+        /* ============================================================
+           DATA TABLE (Thiết kế chuẩn SSH Workbench)
+           ============================================================ */
+        .workbench-content {
+            padding: 20px 24px;
+            flex: 1;
+        }
+
+        /* Trang SETTINGS: sidebar trái + nội dung phải */
+        .settings-layout {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .settings-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background-color: #020817;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .settings-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: var(--font-ui);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            transition: background 120ms ease, color 120ms ease;
+        }
+
+        .settings-nav-item svg {
+            width: 17px;
+            height: 17px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .settings-nav-item:hover {
+            background-color: var(--bg-card-hover);
+            color: var(--text-white);
+        }
+
+        .settings-nav-item.active {
+            background-color: #141c2c;
+            border-color: #1e293f;
+            color: var(--text-white);
+            font-weight: 600;
+        }
+
+        .settings-nav-item.active svg { color: var(--neon-cyan); }
+
+        .settings-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .settings-content > [hidden] { display: none !important; }
+
+        .table-title-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .table-title-bar h3 {
+            font-size: 1.22rem;
+            font-weight: 700;
+            color: var(--text-white);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Group Filter Bar */
+        .group-filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            padding-top: 2px;
+        }
+        .group-filter-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .group-filter-bar::-webkit-scrollbar-thumb {
+            background-color: #334155;
+            border-radius: 4px;
+        }
+        .group-filter-btn {
+            background-color: #0f172a;
+            color: #94a3b8;
+            border: 1px solid #1e293b;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .group-filter-btn:hover {
+            color: #fff;
+            border-color: #334155;
+            background-color: #1e293b;
+        }
+        .group-filter-btn.active {
+            background-color: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
+        }
+
+        .table-container {
+            width: 100%;
+            background-color: #020817;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            overflow: visible;
+        }
+
+        .wb-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            background-color: #020817;
+        }
+
+        .wb-table th {
+            background-color: #1e293b;
+            padding: 12px 20px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: normal;
+            color: #94a3b8;
+            border-bottom: 1px solid #1e293b;
+            user-select: none;
+        }
+
+        .wb-table th:first-child { border-top-left-radius: 8px; }
+        .wb-table th:last-child { border-top-right-radius: 8px; }
+
+        .wb-table td {
+            background-color: #020817;
+            padding: 16px 20px;
+            border-bottom: 1px solid #1e293b;
+            vertical-align: middle;
+            transition: background 100ms ease;
+        }
+
+        .wb-table tr:hover td {
+            background-color: #0f172a;
+        }
+
+        /* Bảng Quản lý Server: giảm padding ngang để các cột sát nhau hơn,
+           dành chỗ cho cột CPU in đủ 1 dòng không xuống dòng */
+        #manage-servers-table th,
+        #manage-servers-table td {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        #manage-servers-table td .cpu-nowrap {
+            white-space: nowrap;
+        }
+
+        /* ============================================================
+           VIEW: ĐỒNG BỘ FILE (2 cột — duyệt file nguồn / chọn máy đích)
+           ============================================================ */
+        .sync-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        .sync-panel {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-crisp);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .sync-panel-head {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-crisp);
+            background-color: var(--bg-table-header);
+        }
+        .sync-panel-head h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .sync-panel-body {
+            padding: 14px 16px;
+        }
+        .sync-fs-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-crisp);
+        }
+        .sync-fs-path {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            border-radius: 6px;
+            padding: 6px 10px;
+            min-width: 0;
+        }
+        .sync-fs-path:focus {
+            outline: none;
+            border-color: var(--border-active);
+            color: var(--text-primary);
+        }
+        .sync-btn-ghost {
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            transition: all 100ms ease;
+            white-space: nowrap;
+        }
+        .sync-btn-ghost:hover:not(:disabled) {
+            background-color: var(--bg-pill-hover);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+        .sync-btn-ghost:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .sync-fs-list {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .sync-fs-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+            font-size: 0.85rem;
+            user-select: none;
+        }
+        .sync-fs-item:hover {
+            background-color: var(--bg-card-hover);
+        }
+        .sync-fs-item.selected {
+            background-color: rgba(59, 130, 246, 0.15);
+            box-shadow: inset 2px 0 0 var(--neon-blue);
+        }
+        .sync-fs-item .fs-name {
+            flex: 1;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .sync-fs-item .fs-name.dir {
+            color: var(--neon-cyan);
+            font-weight: 600;
+        }
+        .sync-fs-item .fs-size {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .sync-fs-empty {
+            padding: 24px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        .sync-group-block {
+            border: 1px solid var(--border-crisp);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .sync-group-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background-color: var(--bg-table-header);
+        }
+        .sync-group-head .grp-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .sync-group-head.clickable {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sync-group-head.clickable:hover {
+            background-color: var(--bg-card-hover);
+        }
+        .sync-group-head .grp-caret {
+            color: var(--text-muted);
+            transition: transform 120ms ease;
+            flex-shrink: 0;
+        }
+        .sync-group-head .grp-caret.open {
+            transform: rotate(90deg);
+        }
+        .sync-group-head .grp-count {
+            flex: 1;
+            text-align: right;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .sync-target-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 12px;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(30, 41, 59, 0.5);
+            cursor: pointer;
+            user-select: none;
+        }
+        .sync-target-item:hover {
+            background-color: var(--bg-card-hover);
+        }
+        .sync-target-item input[type="checkbox"] {
+            accent-color: var(--neon-blue);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+        .sync-target-item .tgt-label {
+            flex: 1;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .sync-target-item .tgt-host {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .sync-targets-scroll {
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        .sync-preflight {
+            margin-top: 16px;
+        }
+        .sync-check-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .sync-check-table th {
+            text-align: left;
+            padding: 8px 10px;
+            background-color: var(--bg-table-header);
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--border-crisp);
+        }
+        .sync-check-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+        .sync-check-table tr:last-child td {
+            border-bottom: none;
+        }
+        .sync-mono {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+        }
+        .sync-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .sync-tag.ok      { background-color: rgba(34,197,94,.15);  color: var(--neon-green); }
+        .sync-tag.warn    { background-color: rgba(234,179,8,.15);  color: var(--neon-amber); }
+        .sync-tag.err     { background-color: rgba(239,68,68,.15);  color: var(--neon-red); }
+        .sync-tag.info    { background-color: rgba(59,130,246,.15); color: var(--neon-blue); }
+        .sync-tag.muted   { background-color: rgba(100,116,139,.15);color: var(--text-muted); }
+        .sync-progress-track {
+            width: 110px;
+            height: 6px;
+            background-color: var(--bg-track);
+            border-radius: 999px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .sync-progress-fill {
+            height: 100%;
+            background-color: var(--neon-blue);
+            border-radius: 999px;
+            transition: width 300ms ease;
+        }
+        .sync-progress-fill.done { background-color: var(--neon-green); }
+        .sync-actions-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .sync-btn-primary {
+            background-color: #ef4444;
+            border: 1px solid #ef4444;
+            color: #fff;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            transition: all 120ms ease;
+        }
+        .sync-btn-primary:hover:not(:disabled) {
+            background-color: #dc2626;
+            border-color: #dc2626;
+        }
+        .sync-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+        /* Nút Hủy — dùng style cancel chuẩn của modal (viền mờ, không màu) */
+        .sync-btn-danger {
+            background: transparent;
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+        }
+        .sync-btn-danger:hover:not(:disabled) {
+            background: transparent;
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+        .sync-note {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .wb-table tr:last-child td {
+            border-bottom: none;
+        }
+        .wb-table tr:last-child td:first-child { border-bottom-left-radius: 8px; }
+        .wb-table tr:last-child td:last-child { border-bottom-right-radius: 8px; }
+
+        /* Cột 1: SYSTEM (IP, Name & Status) */
+        .system-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .node-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green-glow);
+            flex-shrink: 0;
+        }
+
+        .node-dot.offline {
+            background-color: var(--neon-red);
+            box-shadow: none;
+        }
+
+        .system-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .system-ip {
+            font-family: var(--font-mono);
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: var(--text-white);
+            letter-spacing: -0.01em;
+        }
+
+        .system-meta {
+            font-family: var(--font-mono);
+            font-size: 0.84rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .group-tag-inline {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background-color: #172033;
+            color: #93c5fd;
+            font-size: 0.72rem;
+            font-family: var(--font-ui);
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Cột METRICS: CPU, Memory, Disk */
+        .metric-cell {
+            min-width: 145px;
+        }
+
+        .metric-values {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 6px;
+            white-space: nowrap;
+        }
+
+        .metric-pct {
+            font-family: var(--font-mono);
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        .metric-subtext {
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+
+        .metric-track {
+            width: 100%;
+            height: 6px;
+            background-color: #1e293b;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .metric-fill {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.4s ease;
+        }
+
+        .metric-fill.cpu { background-color: #22c55e; }
+        .metric-fill.mem { background-color: #22c55e; }
+        .metric-fill.disk { background-color: #eab308; }
+        .metric-fill.disk-safe { background-color: #22c55e; }
+        .metric-fill.danger { background-color: #ef4444 !important; }
+
+        /* Cột NETWORK */
+        .network-cell {
+            font-family: var(--font-mono);
+            font-size: 0.86rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 135px;
+        }
+
+        .net-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .net-line.rx { color: var(--text-white); font-weight: 600; }
+        .net-line.rx svg { color: #94a3b8; }
+        .net-line.tx { color: #94a3b8; font-weight: 500; }
+        .net-line.tx svg { color: #94a3b8; }
+
+        /* Cột UPTIME */
+        .uptime-cell {
+            font-family: var(--font-mono);
+            font-size: 0.94rem;
+            font-weight: 500;
+            color: var(--text-white);
+            white-space: nowrap;
+        }
+
+        /* Cột ACTIONS */
+        .actions-cell {
+            text-align: right;
+            position: relative;
+        }
+
+        .btn-more-dots {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 120ms ease;
+        }
+
+        .btn-more-dots:hover {
+            background-color: var(--bg-pill);
+            color: var(--text-white);
+            border-color: var(--border-crisp);
+        }
+
+        .action-dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            z-index: 100;
+            background-color: #121826;
+            border: 1px solid var(--border-crisp);
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            display: none;
+            flex-direction: column;
+            min-width: 130px;
+            overflow: hidden;
+        }
+
+        .action-dropdown-menu.show { display: flex; }
+
+        .menu-action-btn {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            background: transparent;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-action-btn:hover { background-color: var(--bg-card-hover); color: #fff; }
+        .menu-action-btn.danger { color: #fca5a5; }
+        .menu-action-btn.danger:hover { background-color: rgba(239, 68, 68, 0.15); }
+
+        /* ============================================================
+           DRAG & DROP HANDLE (KÉO THẢ SẮP XẾP SERVER)
+           ============================================================ */
+        .drag-cell {
+            width: 54px;
+            text-align: left;
+            padding-left: 20px !important;
+            padding-right: 8px !important;
+            user-select: none;
+        }
+
+        .drag-handle-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+            cursor: grab;
+            transition: all 120ms ease;
+        }
+
+        .drag-handle-btn:hover {
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            background-color: #141c2c;
+        }
+
+        .drag-handle-btn:active {
+            cursor: grabbing;
+        }
+
+        .draggable-row.dragging {
+            opacity: 0.4;
+            background-color: #1a2336 !important;
+        }
+
+        .draggable-row.drag-over {
+            border-top: 2px solid var(--neon-cyan) !important;
+        }
+
+        /* ============================================================
+           MODAL (ADD GROUP & ADD SERVER)
+           ============================================================ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            width: 100%;
+            max-width: 480px;
+            background-color: #0e1422;
+            border: 1px solid #232d42;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        .modal-head {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-crisp);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-head h3 { font-size: 0.95rem; font-weight: 700; color: #fff; }
+        .modal-close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; }
+
+        .modal-body {
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .field-label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block; }
+
+        .modal-input {
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 6px;
+            background-color: #080c14;
+            border: 1px solid #1c2538;
+            color: #fff;
+            font-size: 0.82rem;
+            outline: none;
+        }
+
+        .modal-input:focus { border-color: var(--neon-cyan); }
+
+        .modal-foot {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-crisp);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            background-color: #0a0f1a;
+        }
+
+        .btn-modal-cancel {
+            padding: 6px 14px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .btn-modal-save {
+            padding: 6px 16px;
+            border-radius: 6px;
+            background-color: #ef4444;
+            border: none;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 120ms ease;
+        }
+        
+        .btn-modal-save:hover {
+            background-color: #dc2626;
+        }
+
+        /* Toast */
+        .toast-shelf {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .toast-unit {
+            padding: 10px 14px;
+            border-radius: 6px;
+            background-color: #101624;
+            border: 1px solid #202b3f;
+            color: #fff;
+            font-size: 0.8rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="workbench-layout">
+        <!-- ======================= LEFT SIDEBAR ======================= -->
+        <aside class="workbench-sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
+                        <line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
+                    </svg>
+                </div>
+                <span class="brand-text">SSH Monitor</span>
+            </div>
+
+            <!-- Sidebar Navigation: 3 Menu Chức năng -->
+            <nav class="sidebar-nav-list">
+                <span class="sidebar-section-heading">Màn hình theo dõi</span>
+                <div class="nav-link-btn active" id="nav-btn-servers" onclick="switchViewTab('servers')">
+                    <div class="nav-link-left">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        <span>Dashboard Live</span>
+                    </div>
+                </div>
+
+                <span class="sidebar-section-heading" style="margin-top: 10px;">Quản trị hệ thống</span>
+                <div class="nav-link-btn" id="nav-btn-manage-servers" onclick="switchViewTab('manage-servers')">
+                    <div class="nav-link-left">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                        <span>Quản lý Server</span>
+                    </div>
+                    <span class="count-badge" id="sb-count-manage">0</span>
+                </div>
+
+                <div class="nav-link-btn" id="nav-btn-clusters" onclick="switchViewTab('clusters')">
+                    <div class="nav-link-left">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        <span>Quản lý Group</span>
+                    </div>
+                    <span class="count-badge" id="sb-count-groups">0</span>
+                </div>
+
+                <div class="nav-link-btn" id="nav-btn-sync" onclick="switchViewTab('sync')">
+                    <div class="nav-link-left">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 17 12 17"/><polyline points="8 13 16 13"/></svg>
+                        <span>Đồng bộ File</span>
+                    </div>
+                </div>
+
+                <span class="sidebar-section-heading" style="margin-top: 10px;">Hệ thống</span>
+                <div class="nav-link-btn" id="nav-btn-settings" onclick="switchViewTab('settings')">
+                    <div class="nav-link-left">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>Cài Đặt</span>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Sidebar Footer Removed as requested -->
+        </aside>
+
+        <!-- ======================= MAIN WORKBENCH ======================= -->
+        <main class="workbench-main">
+            <!-- DYNAMIC TOPBAR (Tùy biến theo từng tab riêng biệt) -->
+            <header class="workbench-topbar">
+                <div class="topbar-left-controls">
+                    <span class="view-title-tag" id="top-view-title">DASHBOARD</span>
+
+                    <!-- Nhóm Controls cho Dashboard Live: Chu kỳ làm mới -->
+                    <div id="topbar-dashboard-controls" style="display: flex; align-items: center; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 4px;" title="Chọn chu kỳ làm mới số liệu">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            <select class="select-interval-dropdown" id="top-interval-select" onchange="handleIntervalChange(this.value)">
+                                <option value="1000" selected>1s</option>
+                                <option value="2000">2s</option>
+                                <option value="3000">3s</option>
+                                <option value="5000">5s</option>
+                                <option value="10000">10s</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Ô tìm kiếm (Dùng cho Dashboard và Quản lý Server) -->
+                    <div class="topbar-search" id="topbar-search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="top-search-input" placeholder="Search servers, IP..." oninput="handleSearch(this.value)">
+                    </div>
+                </div>
+
+                <!-- Nhóm Actions bên phải Topbar (Tách riêng cho từng tab) -->
+                <div class="topbar-right-actions">
+                    <!-- Actions cho DASHBOARD: Làm mới ngay, + Group, + Server -->
+                    <div id="topbar-dashboard-actions" style="display: flex; align-items: center; gap: 8px;">
+                    </div>
+
+                    <!-- Actions cho QUẢN LÝ SERVER: Chỉ có duy nhất + Thêm Server -->
+                    <div id="topbar-manage-actions" style="display: none; align-items: center; gap: 8px;">
+                        <button class="btn-create-server" onclick="openAddServerModal()" title="Thêm máy chủ mới">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            <span>+ Thêm Server</span>
+                        </button>
+                    </div>
+
+                    <!-- Actions cho QUẢN LÝ GROUP: Chỉ có duy nhất + Thêm Group -->
+                    <div id="topbar-cluster-actions" style="display: none; align-items: center; gap: 8px;">
+                        <button class="btn-create-group" onclick="openAddGroupModal()" title="Tạo Group mới">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            <span>+ Tạo Group</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- MAIN CONTENT AREA -->
+            <div class="workbench-content" id="workbench-content-area">
+                <!-- Dynamically Rendered Content -->
+            </div>
+        </main>
+    </div>
+
+    <!-- ======================= MODAL: THÊM / SỬA SERVER ======================= -->
+    <div class="modal-overlay" id="modal-server">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3 id="modal-server-title">Thêm Server Mới</h3>
+                <button class="modal-close" onclick="closeModalServer()">&times;</button>
+            </div>
+            <form onsubmit="handleServerSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-row-2">
+                        <div>
+                            <label class="field-label">Tên Server / Hostname</label>
+                            <input class="modal-input" id="inp-srv-label" placeholder="Để trống = dùng Host bên dưới">
+                        </div>
+                        <div>
+                            <label class="field-label">Cụm máy chủ (Group) *</label>
+                            <select class="modal-input" id="inp-srv-group" required>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div>
+                            <label class="field-label">Địa chỉ Host / IP</label>
+                            <input class="modal-input" id="inp-srv-host" placeholder="103.xxx.xxx.xxx" required>
+                        </div>
+                        <div>
+                            <label class="field-label">Cổng SSH (Port)</label>
+                            <input class="modal-input" id="inp-srv-port" type="number" value="22" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label">User SSH</label>
+                        <input class="modal-input" id="inp-srv-user" value="root" required>
+                    </div>
+                    <div>
+                        <label class="field-label">Mật khẩu (Password)</label>
+                        <div style="position: relative;">
+                            <input class="modal-input" id="inp-srv-pass" type="password" placeholder="Để trống nếu dùng Key" style="padding-right: 40px;">
+                            <button type="button" id="btn-toggle-pass" onclick="togglePasswordVisibility()" title="Hiện / ẩn mật khẩu" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 30px; height: 26px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                                <svg id="icon-eye" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg id="icon-eye-off" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label">Đường dẫn Key SSH</label>
+                        <input class="modal-input" id="inp-srv-key" placeholder="~/.ssh/vps_key hoặc id_rsa">
+                    </div>
+                    <div>
+                        <label class="field-label">Proxy kết nối</label>
+                        <select class="modal-input" id="inp-srv-proxy">
+                            <option value="">Trực tiếp (không qua proxy)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModalServer()">Hủy</button>
+                    <button type="submit" class="btn-modal-save" id="btn-save-server">Lưu Server</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL: THÊM GROUP ======================= -->
+    <div class="modal-overlay" id="modal-group">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3>Tạo Group Mới</h3>
+                <button class="modal-close" onclick="closeModalGroup()">&times;</button>
+            </div>
+            <form onsubmit="handleGroupSubmit(event)">
+                <div class="modal-body">
+                    <div>
+                        <label class="field-label">Tên Group Mới</label>
+                        <input class="modal-input" id="inp-grp-name" placeholder="VD: Hostings, XVPS, Backup..." required autofocus>
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModalGroup()">Hủy</button>
+                    <button type="submit" class="btn-modal-save">Tạo Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL: ĐỔI TÊN GROUP ======================= -->
+    <div class="modal-overlay" id="modal-edit-group">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3>Đổi Tên Group</h3>
+                <button class="modal-close" onclick="closeModalEditGroup()">&times;</button>
+            </div>
+            <form onsubmit="handleEditGroupSubmit(event)">
+                <input type="hidden" id="inp-old-grp">
+                <div class="modal-body">
+                    <div>
+                        <label class="field-label">Tên Group Mới</label>
+                        <input class="modal-input" id="inp-new-grp" required>
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModalEditGroup()">Hủy</button>
+                    <button type="submit" class="btn-modal-save">Lưu Thay Đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL: THÊM / SỬA PROXY ======================= -->
+    <div class="modal-overlay" id="modal-proxy">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3 id="modal-proxy-title">Thêm Proxy</h3>
+                <button class="modal-close" onclick="closeModalProxy()">&times;</button>
+            </div>
+            <form onsubmit="handleProxySubmit(event)">
+                <div class="modal-body">
+                    <div>
+                        <label class="field-label">Tên Proxy</label>
+                        <input class="modal-input" id="inp-prx-name" placeholder="VD: Proxy Singapore (để trống = tự đặt)">
+                    </div>
+                    <div class="form-row-2">
+                        <div>
+                            <label class="field-label">Loại Proxy *</label>
+                            <select class="modal-input" id="inp-prx-type" required>
+                                <option value="socks5">SOCKS5</option>
+                                <option value="socks4">SOCKS4/4A</option>
+                                <option value="http">HTTP</option>
+                                <option value="https">HTTPS</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Cổng (Port) *</label>
+                            <input class="modal-input" id="inp-prx-port" type="number" min="1" max="65535" value="1080" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label">Địa chỉ Proxy (Host/IP) *</label>
+                        <input class="modal-input" id="inp-prx-host" placeholder="103.xxx.xxx.xxx hoặc proxy.example.com" required>
+                    </div>
+                    <div class="form-row-2">
+                        <div>
+                            <label class="field-label">Username (nếu có)</label>
+                            <input class="modal-input" id="inp-prx-user" placeholder="Để trống nếu proxy không cần auth" autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="field-label">Password (nếu có)</label>
+                            <div style="position: relative;">
+                                <input class="modal-input" id="inp-prx-pass" type="password" placeholder="Để trống nếu không cần" style="padding-right: 40px;" autocomplete="off">
+                                <button type="button" onclick="toggleProxyPassword()" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 30px; height: 26px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="prx-test-result" style="display: none; font-size: 0.8rem; padding: 8px 12px; border-radius: 6px;"></div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn-modal-cancel" onclick="testProxyFromModal()" id="btn-test-proxy">🔌 Test kết nối</button>
+                    <button type="button" class="btn-modal-cancel" onclick="closeModalProxy()">Hủy</button>
+                    <button type="submit" class="btn-modal-save" id="btn-save-proxy">Lưu Proxy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL: XÁC NHẬN (CONFIRM) ======================= -->
+    <div class="modal-overlay" id="modal-confirm">
+        <div class="modal-box" style="max-width: 400px;">
+            <div class="modal-head">
+                <h3 id="confirm-title" style="color: #ef4444;">Xác nhận</h3>
+                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message" style="color: var(--text-primary); font-size: 0.95rem; margin: 0; padding: 10px 0; line-height: 1.5;"></p>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-modal-cancel" onclick="closeConfirmModal()">Hủy</button>
+                <button type="button" class="btn-modal-save" id="btn-confirm-ok" style="background-color: #ef4444;">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Shelf -->
+    <div class="toast-shelf" id="toast-shelf"></div>
+
+    <!-- ======================= JAVASCRIPT LOGIC ======================= -->
+    <script>
+    (() => {
+        'use strict';
+
+        /* App State with Tab Persistence */
+        function getInitialTab() {
+            const hash = window.location.hash.replace('#', '').trim();
+            if (['servers', 'manage-servers', 'clusters', 'sync', 'settings'].includes(hash)) {
+                return hash;
+            }
+            const saved = localStorage.getItem('wb_active_tab');
+            if (['servers', 'manage-servers', 'clusters', 'sync', 'settings'].includes(saved)) {
+                return saved;
+            }
+            return 'servers';
+        }
+
+        let currentView = getInitialTab();
+        let serverConfigs = []; // Source of truth: Cấu hình chuẩn từ backend
+        let metricsMap = {};    // id -> latest metrics
+        let systemGroups = [];
+        let proxyList = [];     // Danh sách proxy từ backend
+        let selectedCluster = localStorage.getItem('wb_selected_cluster') || 'all';
+        let searchQuery = '';
+        let currentGroupFilter = localStorage.getItem('wb_group_filter') || 'all';
+        let editingServerId = null;
+
+        let refreshIntervalMs = parseInt(localStorage.getItem('wb_refresh_interval')) || 1000;
+        let lastRenderTime = 0;
+        let wsConn = null;
+        let wsBackoff = 1000;
+
+        function showToast(text) {
+            const shelf = document.getElementById('toast-shelf');
+            const item = document.createElement('div');
+            item.className = 'toast-unit';
+            item.textContent = text;
+            shelf.appendChild(item);
+            setTimeout(() => item.remove(), 2800);
+        }
+
+        function formatNet(bps) {
+            if (!bps || bps < 0) return '0 B/s';
+            if (bps < 1024) return Math.round(bps) + ' B/s';
+            if (bps < 1048576) return (bps / 1024).toFixed(1) + ' KB/s';
+            if (bps < 1073741824) return (bps / 1048576).toFixed(2) + ' MB/s';
+            return (bps / 1073741824).toFixed(2) + ' GB/s';
+        }
+
+        function formatRAM(mb) {
+            if (!mb || mb <= 0) return '0 MB';
+            if (mb >= 1024) {
+                const gb = mb / 1024;
+                return (gb >= 10 ? Math.round(gb) : gb.toFixed(1)) + 'GB';
+            }
+            return Math.round(mb) + 'MB';
+        }
+
+        function formatDiskUsed(used) {
+            if (!used || used === '0') return '0G';
+            return used;
+        }
+
+        // Subtext Memory/Disk: used / total / Free X (giá trị thật từ backend)
+        function buildUsageText(used, total, freeStr) {
+            if (!freeStr || freeStr === 'N/A') return `${used} / ${total}`;
+            return `${used} / ${total} / Free ${freeStr}`;
+        }
+
+        function escapeHTML(s) {
+            if (!s) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        /* Nạp danh sách Server từ Backend (Không phụ thuộc WebSocket delay) */
+        async function refreshServerConfigs() {
+            try {
+                const res = await fetch('/api/servers?t=' + Date.now());
+                const data = await res.json();
+                serverConfigs = data.servers || [];
+                document.getElementById('sb-count-manage').textContent = serverConfigs.length;
+                renderViewContent();
+            } catch (err) {
+                console.error('Refresh server configs error:', err);
+            }
+        }
+
+        /* Nạp danh sách Cụm từ Backend */
+        async function fetchGroups() {
+            try {
+                const res = await fetch('/api/groups?t=' + Date.now());
+                const data = await res.json();
+                systemGroups = data.groups || [];
+                updateClusterSelectors();
+                document.getElementById('sb-count-groups').textContent = systemGroups.length;
+            } catch (err) {
+                console.error('Fetch groups err:', err);
+            }
+        }
+
+        /* Nạp danh sách Proxy từ Backend */
+        async function fetchProxies() {
+            try {
+                const res = await fetch('/api/proxies?t=' + Date.now());
+                const data = await res.json();
+                proxyList = data.proxies || [];
+            } catch (err) {
+                console.error('Fetch proxies err:', err);
+            }
+        }
+
+        /* Tùy biến Topbar theo từng tab (Dynamic Header) */
+        function updateTopbarForTab(tab) {
+            const titleTag = document.getElementById('top-view-title');
+            const dashControls = document.getElementById('topbar-dashboard-controls');
+            const searchBox = document.getElementById('topbar-search-box');
+            const dashActions = document.getElementById('topbar-dashboard-actions');
+            const manageActions = document.getElementById('topbar-manage-actions');
+            const clusterActions = document.getElementById('topbar-cluster-actions');
+
+            if (tab === 'servers') {
+                titleTag.textContent = 'DASHBOARD';
+                dashControls.style.display = 'flex';
+                searchBox.style.display = 'block';
+                dashActions.style.display = 'flex';
+                manageActions.style.display = 'none';
+                clusterActions.style.display = 'none';
+            } else if (tab === 'manage-servers') {
+                titleTag.textContent = 'QUẢN LÝ SERVER';
+                dashControls.style.display = 'none';
+                searchBox.style.display = 'block';
+                dashActions.style.display = 'none';
+                manageActions.style.display = 'flex';
+                clusterActions.style.display = 'none';
+            } else if (tab === 'clusters') {
+                titleTag.textContent = 'QUẢN LÝ GROUP';
+                dashControls.style.display = 'none';
+                searchBox.style.display = 'none';
+                dashActions.style.display = 'none';
+                manageActions.style.display = 'none';
+                clusterActions.style.display = 'flex';
+            } else if (tab === 'sync') {
+                titleTag.textContent = 'ĐỒNG BỘ FILE';
+                dashControls.style.display = 'none';
+                searchBox.style.display = 'none';
+                dashActions.style.display = 'none';
+                manageActions.style.display = 'none';
+                clusterActions.style.display = 'none';
+            } else if (tab === 'settings') {
+                titleTag.textContent = 'CÀI ĐẶT';
+                dashControls.style.display = 'none';
+                searchBox.style.display = 'none';
+                dashActions.style.display = 'none';
+                manageActions.style.display = 'none';
+                clusterActions.style.display = 'none';
+            }
+        }
+
+        /* Switch Sidebar Tab */
+        window.switchViewTab = function(tab, updateHistory = true) {
+            if (!['servers', 'manage-servers', 'clusters', 'sync', 'settings'].includes(tab)) tab = 'servers';
+            currentView = tab;
+            localStorage.setItem('wb_active_tab', tab);
+
+            if (updateHistory) {
+                if (window.location.hash.replace('#', '') !== tab) {
+                    history.replaceState(null, '', '#' + tab);
+                }
+            }
+
+            document.getElementById('nav-btn-servers').classList.toggle('active', tab === 'servers');
+            document.getElementById('nav-btn-manage-servers').classList.toggle('active', tab === 'manage-servers');
+            document.getElementById('nav-btn-clusters').classList.toggle('active', tab === 'clusters');
+            document.getElementById('nav-btn-sync').classList.toggle('active', tab === 'sync');
+            document.getElementById('nav-btn-settings').classList.toggle('active', tab === 'settings');
+
+            updateTopbarForTab(tab);
+            renderViewContent();
+        };
+
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '').trim();
+            if (hash && hash !== currentView && ['servers', 'manage-servers', 'clusters', 'sync', 'settings'].includes(hash)) {
+                switchViewTab(hash, false);
+            }
+        });
+
+        window.handleClusterChange = function(val) {
+            selectedCluster = val;
+            localStorage.setItem('wb_selected_cluster', val);
+            renderViewContent();
+        };
+
+        window.handleSearch = function(val) {
+            searchQuery = val.trim().toLowerCase();
+            renderViewContent();
+        };
+
+        window.handleIntervalChange = function(val) {
+            refreshIntervalMs = parseInt(val) || 1000;
+            localStorage.setItem('wb_refresh_interval', refreshIntervalMs);
+            const secText = (refreshIntervalMs / 1000) + 's';
+            const labelEl = document.getElementById('wb-live-label');
+            if (labelEl) labelEl.textContent = 'Live ' + secText;
+            showToast(`Thời gian làm mới: ${secText}`);
+        };
+
+        window.forceRefreshData = function() {
+            refreshServerConfigs();
+            showToast('Đã làm mới dữ liệu');
+        };
+
+        function updateClusterSelectors() {
+            const topSel = document.getElementById('top-cluster-select');
+            if (topSel) {
+                let opts = `<option value="all">All Servers</option>`;
+                systemGroups.forEach(g => {
+                    opts += `<option value="${escapeHTML(g)}" ${selectedCluster === g ? 'selected' : ''}>${escapeHTML(g)}</option>`;
+                });
+                topSel.innerHTML = opts;
+            }
+
+            const srvSel = document.getElementById('inp-srv-group');
+            if (srvSel) {
+                if (systemGroups.length === 0) {
+                    srvSel.innerHTML = `<option value="Default">All Group (Default)</option>`;
+                } else {
+                    srvSel.innerHTML = `<option value="Default">All Group (Default)</option>` + 
+                                       systemGroups.map(g => `<option value="${escapeHTML(g)}">${escapeHTML(g)}</option>`).join('');
+                }
+            }
+        }
+
+        function connectWebSocket() {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            wsConn = new WebSocket(`${proto}//${location.host}/ws`);
+
+            wsConn.onopen = () => {
+                wsBackoff = 1000;
+                const dot = document.getElementById('wb-live-dot');
+                if (dot) dot.className = 'live-dot';
+                const status = document.getElementById('wb-live-status');
+                if (status) status.textContent = 'Đã kết nối';
+            };
+
+            wsConn.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'metrics') {
+                        const arr = msg.data || [];
+                        arr.forEach(m => {
+                            metricsMap[m.id] = m;
+                        });
+
+                        const now = Date.now();
+                        if (now - lastRenderTime >= (refreshIntervalMs - 80)) {
+                            lastRenderTime = now;
+                            if (currentView === 'servers') {
+                                updateDashboardInPlace();
+                            } else if (currentView === 'manage-servers') {
+                                updateManageServersOSInPlace();
+                            } else if (currentView === 'sync') {
+                                updateSyncStatusInPlace();
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('WS parse error:', e);
+                }
+            };
+
+            wsConn.onclose = () => {
+                const dot = document.getElementById('wb-live-dot');
+                if (dot) dot.className = 'live-dot offline';
+                const status = document.getElementById('wb-live-status');
+                if (status) status.textContent = 'Mất kết nối';
+                setTimeout(() => {
+                    wsBackoff = Math.min(wsBackoff * 1.5, 30000);
+                    connectWebSocket();
+                }, wsBackoff);
+            };
+
+            wsConn.onerror = () => wsConn.close();
+        }
+
+        window.setGroupFilter = function(group) {
+            currentGroupFilter = group;
+            localStorage.setItem('wb_group_filter', group);
+            renderViewContent();
+        };
+
+        function renderGroupFilterBar() {
+            let html = '<div class="group-filter-bar">';
+            html += `<button class="group-filter-btn ${currentGroupFilter === 'all' ? 'active' : ''}" onclick="setGroupFilter('all')">All Server</button>`;
+            systemGroups.forEach(g => {
+                html += `<button class="group-filter-btn ${currentGroupFilter === g ? 'active' : ''}" onclick="setGroupFilter('${escapeHTML(g)}')">${escapeHTML(g)}</button>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderViewContent() {
+            const area = document.getElementById('workbench-content-area');
+            if (!area) return;
+            if (currentView === 'servers') {
+                renderServersView(area);
+            } else if (currentView === 'manage-servers') {
+                renderManageServersView(area);
+            } else if (currentView === 'sync') {
+                renderSyncView(area);
+            } else if (currentView === 'settings') {
+                renderSettingsView(area);
+            } else {
+                renderClustersView(area);
+            }
+        }
+
+        /* ============================================================
+           VIEW 1: SERVERS DASHBOARD (Đồng bộ theo serverConfigs & metricsMap)
+           ============================================================ */
+        function getMergedServersList() {
+            let list = serverConfigs;
+            if (currentGroupFilter !== 'all') {
+                list = list.filter(cfg => (cfg.group || 'Default') === currentGroupFilter);
+            }
+            if (searchQuery) {
+                list = list.filter(s => {
+                    const matchLabel = (s.label || '').toLowerCase().includes(searchQuery);
+                    const matchHost = (s.host || '').toLowerCase().includes(searchQuery);
+                    const matchGroup = (s.group || '').toLowerCase().includes(searchQuery);
+                    return matchLabel || matchHost || matchGroup;
+                });
+            }
+            return list.map(cfg => {
+                const metrics = metricsMap[cfg.id] || {};
+                return {
+                    id: cfg.id,
+                    label: cfg.label || cfg.id,
+                    host: cfg.host,
+                    port: cfg.port || 22,
+                    user: cfg.user || 'root',
+                    group: cfg.group || 'Default',
+                    key_path: cfg.key_path,
+                    status: metrics.status || 'offline',
+                    cpu_percent: metrics.cpu_percent || 0,
+                    ram_percent: metrics.ram_percent || 0,
+                    ram_used_mb: metrics.ram_used_mb || 0,
+                    ram_total_mb: metrics.ram_total_mb || 0,
+                    ram_free_mb: metrics.ram_free_mb || 0,
+                    disk_percent: metrics.disk_percent || 0,
+                    disk_used: metrics.disk_used || '0',
+                    disk_total: metrics.disk_total || '0',
+                    disk_avail: metrics.disk_avail || '',
+                    net_rx_rate: metrics.net_rx_rate || 0,
+                    net_tx_rate: metrics.net_tx_rate || 0,
+                    io_read_rate: metrics.io_read_rate || 0,
+                    io_write_rate: metrics.io_write_rate || 0,
+                    uptime: metrics.uptime || 'N/A',
+                    cpu_cores: metrics.cpu_cores || 0
+                };
+            });
+        }
+
+        function renderServersView(area) {
+            const servers = getMergedServersList();
+
+            let html = `
+                <div class="table-title-bar">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #94a3b8;"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                        <span>Servers</span>
+                        <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 600;">(${servers.length})</span>
+                    </h3>
+                </div>
+
+                ${renderGroupFilterBar()}
+
+                <div class="table-container">
+                    <table class="wb-table" id="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 250px;">System</th>
+                                <th>CPU</th>
+                                <th>Memory</th>
+                                <th>Disk</th>
+                                <th style="width: 175px;">Network</th>
+                                <th style="width: 145px;">Disk I/O</th>
+                                <th style="width: 110px;">Uptime</th>
+                                <th style="width: 50px; text-align: right;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-tbody">
+            `;
+
+            if (servers.length === 0) {
+                html += `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Không có máy chủ nào phù hợp bộ lọc.</td></tr>`;
+            } else {
+                servers.forEach(s => {
+                    html += buildDashboardRowHTML(s);
+                });
+            }
+
+            html += `</tbody></table></div>`;
+            area.innerHTML = html;
+        }
+
+        function buildDashboardRowHTML(s) {
+            const cpu = Math.max(0, Math.min(100, s.cpu_percent || 0));
+            const ram = Math.max(0, Math.min(100, s.ram_percent || 0));
+            const disk = Math.max(0, Math.min(100, s.disk_percent || 0));
+
+            const isOnline = s.status === 'online';
+            const hostLabel = s.host || '127.0.0.1';
+            const fullAddr = `${hostLabel}:${s.port || 22}`;
+            const groupName = s.group || 'Default';
+
+            const cpuClass = cpu > 85 ? 'danger' : 'cpu';
+            const ramClass = ram > 85 ? 'danger' : 'mem';
+            const diskClass = disk > 85 ? 'danger' : (disk > 70 ? 'disk' : 'disk-safe');
+
+            return `
+                <tr class="dashboard-row" data-id="${escapeHTML(s.id)}">
+                    <!-- 1. SYSTEM -->
+                    <td>
+                        <div class="system-cell">
+                            <span class="node-dot ${isOnline ? '' : 'offline'}" title="${isOnline ? 'Online' : 'Offline'}"></span>
+                            <div class="system-info">
+                                <span class="system-ip">${escapeHTML(s.label || hostLabel)}</span>
+                                <span class="system-meta">${escapeHTML(fullAddr)}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- 2. CPU -->
+                    <td class="metric-cell">
+                        <div class="metric-values">
+                            <span class="metric-pct cpu-val">${cpu.toFixed(1)}%</span>
+                            <span class="metric-subtext cpu-cores">${s.cpu_cores ? s.cpu_cores + ' cores' : ''}</span>
+                        </div>
+                        <div class="metric-track">
+                            <div class="metric-fill ${cpuClass}" style="width: ${cpu}%;"></div>
+                        </div>
+                    </td>
+
+                    <!-- 3. MEMORY -->
+                    <td class="metric-cell">
+                        <div class="metric-values">
+                            <span class="metric-pct ram-pct">${ram.toFixed(1)}%</span>
+                            <span class="metric-subtext ram-mb">${buildUsageText(formatRAM(s.ram_used_mb), formatRAM(s.ram_total_mb), s.ram_total_mb ? formatRAM(s.ram_free_mb) : '')}</span>
+                        </div>
+                        <div class="metric-track">
+                            <div class="metric-fill ${ramClass}" style="width: ${ram}%;"></div>
+                        </div>
+                    </td>
+
+                    <!-- 4. DISK -->
+                    <td class="metric-cell">
+                        <div class="metric-values">
+                            <span class="metric-pct disk-pct">${disk.toFixed(1)}%</span>
+                            <span class="metric-subtext disk-gb">${buildUsageText(formatDiskUsed(s.disk_used), formatDiskUsed(s.disk_total), formatDiskUsed(s.disk_avail))}</span>
+                        </div>
+                        <div class="metric-track">
+                            <div class="metric-fill ${diskClass}" style="width: ${disk}%;"></div>
+                        </div>
+                    </td>
+
+                    <!-- 5. NETWORK -->
+                    <td>
+                        <div class="network-cell">
+                            <div class="net-line rx" title="Tốc độ nhận (Download)">
+                                <span style="color: #94a3b8; font-size: 0.95rem; line-height: 1;">↓</span>
+                                <span class="rx-val" style="color: #ffffff; font-weight: 600;">${formatNet(s.net_rx_rate)}</span>
+                            </div>
+                            <div class="net-line tx" title="Tốc độ gửi (Upload)">
+                                <span style="color: #94a3b8; font-size: 0.95rem; line-height: 1;">↑</span>
+                                <span class="tx-val" style="color: #94a3b8; font-weight: 500;">${formatNet(s.net_tx_rate)}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- 6. DISK I/O -->
+                    <td>
+                        <div class="network-cell">
+                            <div class="net-line" title="Đọc (đĩa)">
+                                <span style="color: #94a3b8; font-size: 0.82rem; line-height: 1;">R</span>
+                                <span class="io-read-val" style="color: #38bdf8; font-weight: 600;">${formatNet(s.io_read_rate)}</span>
+                            </div>
+                            <div class="net-line" title="Ghi (đĩa)">
+                                <span style="color: #94a3b8; font-size: 0.82rem; line-height: 1;">W</span>
+                                <span class="io-write-val" style="color: #fb923c; font-weight: 500;">${formatNet(s.io_write_rate)}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- 7. UPTIME -->
+                    <td>
+                        <span class="uptime-cell uptime-val">${escapeHTML(s.uptime || 'N/A')}</span>
+                    </td>
+
+                    <!-- 7. ACTIONS -->
+                    <td class="actions-cell">
+                        <button class="btn-more-dots" onclick="toggleRowMenu(event, '${escapeHTML(s.id)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                        </button>
+                        <div class="action-dropdown-menu" id="menu-${escapeHTML(s.id)}">
+                            <button class="menu-action-btn" onclick="openTerminal('${escapeHTML(s.id)}', '${escapeHTML(s.label || s.host || s.id)}', '${escapeHTML(s.host || '')}')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                                Terminal
+                            </button>
+                            <button class="menu-action-btn" onclick="editServer('${escapeHTML(s.id)}')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Sửa cấu hình
+                            </button>
+                            <button class="menu-action-btn danger" onclick="deleteServer('${escapeHTML(s.id)}', '${escapeHTML(s.host || s.label || s.id)}')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                Xóa server
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        /* Update values in-place without rebuilding DOM */
+        function updateDashboardInPlace() {
+            const tbody = document.getElementById('dashboard-tbody');
+            if (!tbody) return;
+
+            const servers = getMergedServersList();
+            const existingRows = tbody.querySelectorAll('.dashboard-row');
+            if (existingRows.length !== servers.length) {
+                renderServersView(document.getElementById('workbench-content-area'));
+                return;
+            }
+
+            servers.forEach((s, idx) => {
+                const row = existingRows[idx];
+                if (!row || row.dataset.id !== s.id) {
+                    renderServersView(document.getElementById('workbench-content-area'));
+                    return;
+                }
+
+                const cpu = Math.max(0, Math.min(100, s.cpu_percent || 0));
+                const ram = Math.max(0, Math.min(100, s.ram_percent || 0));
+                const disk = Math.max(0, Math.min(100, s.disk_percent || 0));
+                const isOnline = s.status === 'online';
+
+                const dot = row.querySelector('.node-dot');
+                if (dot) dot.className = `node-dot ${isOnline ? '' : 'offline'}`;
+
+                const cpuVal = row.querySelector('.cpu-val');
+                if (cpuVal) cpuVal.textContent = cpu.toFixed(1) + '%';
+                const cpuCores = row.querySelector('.cpu-cores');
+                if (cpuCores) cpuCores.textContent = s.cpu_cores ? s.cpu_cores + ' cores' : '';
+                const cpuBar = row.querySelector('.metric-fill');
+                if (cpuBar) {
+                    cpuBar.style.width = cpu + '%';
+                    cpuBar.className = `metric-fill ${cpu > 85 ? 'danger' : 'cpu'}`;
+                }
+
+                const ramPct = row.querySelector('.ram-pct');
+                if (ramPct) ramPct.textContent = ram.toFixed(1) + '%';
+                const ramMb = row.querySelector('.ram-mb');
+                if (ramMb) ramMb.textContent = buildUsageText(formatRAM(s.ram_used_mb), formatRAM(s.ram_total_mb), s.ram_total_mb ? formatRAM(s.ram_free_mb) : '');
+                const ramBar = row.querySelectorAll('.metric-fill')[1];
+                if (ramBar) {
+                    ramBar.style.width = ram + '%';
+                    ramBar.className = `metric-fill ${ram > 85 ? 'danger' : 'mem'}`;
+                }
+
+                const diskPct = row.querySelector('.disk-pct');
+                if (diskPct) diskPct.textContent = disk.toFixed(1) + '%';
+                const diskGb = row.querySelector('.disk-gb');
+                if (diskGb) diskGb.textContent = buildUsageText(formatDiskUsed(s.disk_used), formatDiskUsed(s.disk_total), formatDiskUsed(s.disk_avail));
+                const diskBar = row.querySelectorAll('.metric-fill')[2];
+                if (diskBar) {
+                    diskBar.style.width = disk + '%';
+                    diskBar.className = `metric-fill ${disk > 85 ? 'danger' : (disk > 70 ? 'disk' : 'disk-safe')}`;
+                }
+
+                const rxVal = row.querySelector('.rx-val');
+                if (rxVal) rxVal.textContent = formatNet(s.net_rx_rate);
+                const txVal = row.querySelector('.tx-val');
+                if (txVal) txVal.textContent = formatNet(s.net_tx_rate);
+                const ioReadVal = row.querySelector('.io-read-val');
+                if (ioReadVal) ioReadVal.textContent = formatNet(s.io_read_rate);
+                const ioWriteVal = row.querySelector('.io-write-val');
+                if (ioWriteVal) ioWriteVal.textContent = formatNet(s.io_write_rate);
+                const uptimeVal = row.querySelector('.uptime-val');
+                if (uptimeVal) uptimeVal.textContent = s.uptime || 'N/A';
+            });
+        }
+
+        /* ============================================================
+           VIEW 2: QUẢN LÝ SERVER (Đọc từ serverConfigs, Kéo thả ⋮⋮)
+           ============================================================ */
+        function renderManageServersView(area) {
+            let servers = serverConfigs;
+            if (currentGroupFilter !== 'all') {
+                servers = servers.filter(cfg => (cfg.group || 'Default') === currentGroupFilter);
+            }
+            if (searchQuery) {
+                servers = servers.filter(s => {
+                    const matchLabel = (s.label || '').toLowerCase().includes(searchQuery);
+                    const matchHost = (s.host || '').toLowerCase().includes(searchQuery);
+                    const matchGroup = (s.group || '').toLowerCase().includes(searchQuery);
+                    return matchLabel || matchHost || matchGroup;
+                });
+            }
+
+            let html = `
+                <div class="table-title-bar">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #94a3b8;"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                        <span>Danh Sách Máy Chủ</span>
+                        <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 600;">(${servers.length})</span>
+                    </h3>
+                </div>
+
+                ${renderGroupFilterBar()}
+
+                <div class="table-container">
+                    <table class="wb-table" id="manage-servers-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 54px; min-width: 54px; max-width: 54px; text-align: center;"></th>
+                                <th style="width: 60px; min-width: 60px; max-width: 60px; text-align: center;">STT</th>
+                                <th style="width: 200px;">Tên Server / Hostname</th>
+                                <th style="width: 170px;">Địa chỉ Host / IP</th>
+                                <th style="width: 280px; min-width: 240px;">Hệ điều hành / Kernel</th>
+                                <th style="width: 340px; min-width: 300px;">CPU</th>
+                                <th style="width: 70px;">Port</th>
+                                <th style="width: 90px;">User</th>
+                                <th style="width: 120px;">Cụm (Group)</th>
+                                <th style="width: 100px;">Xác thực</th>
+                                <th style="width: 130px;">Proxy</th>
+                                <th style="width: 60px; text-align: right;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="servers-mgmt-tbody">
+            `;
+
+            if (servers.length === 0) {
+                html += `<tr><td colspan="12" style="text-align: center; padding: 40px; color: var(--text-muted);">Chưa có máy chủ nào. Bấm "+ Thêm Server" ở góc trên để bắt đầu.</td></tr>`;
+            } else {
+                servers.forEach((s, idx) => {
+                    const authText = s.key_path ? 'SSH Key' : 'Password';
+                    const proxyObj = s.proxy_id ? proxyList.find(p => p.id === s.proxy_id) : null;
+                    const proxyText = proxyObj
+                        ? `<span style="font-size: 0.78rem; font-weight: 600; color: #7dd3fc; background: rgba(125,211,252,0.1); padding: 2px 8px; border-radius: 4px;">${escapeHTML(proxyObj.name)}</span>`
+                        : `<span style="font-size: 0.78rem; color: #64748b;">Trực tiếp</span>`;
+                    const m = metricsMap[s.id];
+                    const osKernelHTML = renderOSKernelCell(m);
+
+                    html += `
+                        <tr class="draggable-row" data-id="${escapeHTML(s.id)}">
+                            <!-- CỘT TAY CẦM KÉO THẢ ⋮⋮ -->
+                            <td class="drag-cell">
+                                <div class="drag-handle-btn drag-handle" title="Kéo thả để sắp xếp thứ tự">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                        <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+                                        <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                                        <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+                                    </svg>
+                                </div>
+                            </td>
+                            <td style="text-align: center; font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${idx + 1}</td>
+                            <td>
+                                <strong style="color: #fff; font-size: 1.02rem; font-weight: 700;">${escapeHTML(s.label || s.id)}</strong>
+                            </td>
+                            <td>
+                                <span style="font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${escapeHTML(s.host || '')}</span>
+                            </td>
+                            <td id="mgmt-oskernel-${escapeHTML(s.id)}">
+                                ${osKernelHTML}
+                            </td>
+                            <td id="mgmt-cpu-${escapeHTML(s.id)}">
+                                ${renderCPUSpeedCell(m)}
+                            </td>
+                            <td>
+                                <span style="font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${s.port || 22}</span>
+                            </td>
+                            <td>
+                                <span style="font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${escapeHTML(s.user || 'root')}</span>
+                            </td>
+                            <td>
+                                <span class="group-tag-inline" style="margin-left: 0;">${escapeHTML(s.group || 'Default')}</span>
+                            </td>
+                            <td>
+                                <span style="font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${authText}</span>
+                            </td>
+                            <td>
+                                ${proxyText}
+                            </td>
+                            <td class="actions-cell" style="width: 60px;">
+                                <button class="btn-more-dots" onclick="toggleRowMenu(event, '${escapeHTML(s.id)}')">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                                </button>
+                                <div class="action-dropdown-menu" id="menu-${escapeHTML(s.id)}">
+                                    <button class="menu-action-btn" onclick="openTerminal('${escapeHTML(s.id)}', '${escapeHTML(s.label || s.host || s.id)}', '${escapeHTML(s.host || '')}')">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                                        Terminal
+                                    </button>
+                                    <button class="menu-action-btn" onclick="editServer('${escapeHTML(s.id)}')">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        Sửa cấu hình
+                                    </button>
+                                    <button class="menu-action-btn danger" onclick="deleteServer('${escapeHTML(s.id)}', '${escapeHTML(s.host || s.label || s.id)}')">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                        Xóa server
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += `</tbody></table></div>`;
+            area.innerHTML = html;
+
+            // Bind Drag & Drop Events
+            const tbody = document.getElementById('servers-mgmt-tbody');
+            if (tbody) {
+                bindTableDragAndDrop(tbody);
+            }
+        }
+
+        /* Render 1 cột "Hệ điều hành / Kernel": OS dòng trên, kernel dòng dưới */
+        function renderOSKernelCell(m) {
+            if (!m || !m.os) {
+                return `<span style="color: #64748b;">—</span>`;
+            }
+            const kernelLine = m.kernel
+                ? `<div style="font-family: var(--font-mono); font-size: 0.78rem; color: #94a3b8; margin-top: 2px; white-space: nowrap;">${escapeHTML(m.kernel)}</div>`
+                : '';
+            return `<div style="font-size: 0.9rem; font-weight: 600; color: #e2e8f0; white-space: nowrap;">${escapeHTML(m.os)}</div>${kernelLine}`;
+        }
+
+        /* Render cột "CPU": in nguyên model gốc 1 dòng, tự xuống dòng khi dài */
+        function renderCPUSpeedCell(m) {
+            if (!m || !m.cpu_model) {
+                return `<span style="color: #64748b;">—</span>`;
+            }
+            return `<div class="cpu-nowrap" style="font-size: 0.9rem; font-weight: 600; color: #e2e8f0; line-height: 1.35;">${escapeHTML(m.cpu_model)}</div>`;
+        }
+
+        /* Cập nhật cột Hệ điều hành / Kernel in-place khi có metrics mới qua WebSocket */
+        function updateManageServersOSInPlace() {
+            serverConfigs.forEach(s => {
+                const m = metricsMap[s.id];
+                if (!m) return;
+                if (m.os) {
+                    const cell = document.getElementById(`mgmt-oskernel-${s.id}`);
+                    if (cell) {
+                        cell.innerHTML = renderOSKernelCell(m);
+                    }
+                }
+                if (m.cpu_model) {
+                    const cpuCell = document.getElementById(`mgmt-cpu-${s.id}`);
+                    if (cpuCell) {
+                        cpuCell.innerHTML = renderCPUSpeedCell(m);
+                    }
+                }
+            });
+        }
+
+        /* Logic Drag & Drop bằng chuột */
+        let draggedRowEl = null;
+
+        function bindTableDragAndDrop(tbody) {
+            const rows = tbody.querySelectorAll('.draggable-row');
+            rows.forEach(row => {
+                const handle = row.querySelector('.drag-handle');
+                if (!handle) return;
+
+                handle.addEventListener('mousedown', () => {
+                    row.setAttribute('draggable', 'true');
+                });
+
+                row.addEventListener('dragstart', (e) => {
+                    draggedRowEl = row;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', row.dataset.id);
+                    row.classList.add('dragging');
+                });
+
+                row.addEventListener('dragend', () => {
+                    row.removeAttribute('draggable');
+                    row.classList.remove('dragging');
+                    draggedRowEl = null;
+                    document.querySelectorAll('.draggable-row').forEach(r => r.classList.remove('drag-over'));
+                    saveReorderedServers();
+                });
+
+                row.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    const targetRow = row;
+                    if (targetRow && targetRow !== draggedRowEl) {
+                        const rect = targetRow.getBoundingClientRect();
+                        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+                        tbody.insertBefore(draggedRowEl, next ? targetRow.nextSibling : targetRow);
+                    }
+                });
+            });
+        }
+
+        /* Gửi thứ tự mới lên backend và lưu vào servers.json */
+        async function saveReorderedServers() {
+            const tbody = document.getElementById('servers-mgmt-tbody');
+            if (!tbody) return;
+
+            const rows = tbody.querySelectorAll('.draggable-row');
+            const orderedIDs = Array.from(rows).map(r => r.dataset.id);
+            if (orderedIDs.length === 0) return;
+
+            // Reorder serverConfigs local memory immediately
+            const cfgMap = {};
+            serverConfigs.forEach(s => { cfgMap[s.id] = s; });
+            serverConfigs = orderedIDs.map(id => cfgMap[id]).filter(Boolean);
+
+            try {
+                const res = await fetch('/api/servers/reorder', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ordered_ids: orderedIDs })
+                });
+                if (!res.ok) throw new Error('Lỗi lưu thứ tự');
+                showToast('Đã lưu thứ tự máy chủ mới');
+            } catch (err) {
+                showToast(err.message);
+            }
+        }
+
+        /* ============================================================
+           VIEW 3: GROUPS VIEW (QUẢN LÝ GROUP & KÉO THẢ SẮP XẾP ⋮⋮)
+           ============================================================ */
+        function renderClustersView(area) {
+            const groupCounts = {};
+            serverConfigs.forEach(s => {
+                const g = s.group || 'Default';
+                groupCounts[g] = (groupCounts[g] || 0) + 1;
+            });
+
+            let html = `
+                <div class="table-title-bar">
+                    <h3>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        <span>Danh Sách Group</span>
+                        <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 600;">(${systemGroups.length})</span>
+                    </h3>
+                </div>
+
+                <div class="table-container">
+                    <table class="wb-table" id="groups-mgmt-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 54px; min-width: 54px; max-width: 54px; text-align: center;"></th>
+                                <th style="width: 60px; min-width: 60px; max-width: 60px; text-align: center;">STT</th>
+                                <th>Tên Group</th>
+                                <th>Số lượng máy chủ</th>
+                                <th style="text-align: right; width: 150px; white-space: nowrap;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="groups-mgmt-tbody">
+            `;
+
+            if (systemGroups.length === 0) {
+                html += `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Chưa có group nào. Bấm "+ Tạo Group" ở góc trên để bắt đầu.</td></tr>`;
+            } else {
+                systemGroups.forEach((g, idx) => {
+                    const count = groupCounts[g] || 0;
+                    html += `
+                        <tr class="draggable-group-row" data-group="${escapeHTML(g)}">
+                            <!-- CỘT TAY CẦM KÉO THẢ GROUP ⋮⋮ -->
+                            <td class="drag-cell">
+                                <div class="drag-handle-btn drag-handle-group" title="Kéo thả để sắp xếp thứ tự group">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                        <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+                                        <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                                        <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+                                    </svg>
+                                </div>
+                            </td>
+                            <td style="text-align: center; font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${idx + 1}</td>
+                            <td><strong style="color: var(--text-white); font-size: 1.02rem; font-weight: 700;">${escapeHTML(g)}</strong></td>
+                            <td><span style="font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: var(--neon-cyan);">${count} nodes</span></td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #cbd5e1;" onclick="openEditGroupModal('${escapeHTML(g)}')" title="Đổi tên">✏️ Sửa</button>
+                                <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #f87171;" onclick="deleteGroup('${escapeHTML(g)}', ${count})" title="Xóa">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += `</tbody></table></div>`;
+            area.innerHTML = html;
+
+            const tbody = document.getElementById('groups-mgmt-tbody');
+            if (tbody) {
+                bindGroupDragAndDrop(tbody);
+            }
+        }
+
+        /* Drag & Drop cho Group */
+        let draggedGroupRowEl = null;
+
+        function bindGroupDragAndDrop(tbody) {
+            const rows = tbody.querySelectorAll('.draggable-group-row');
+            rows.forEach(row => {
+                const handle = row.querySelector('.drag-handle-group');
+                if (!handle) return;
+
+                handle.addEventListener('mousedown', () => {
+                    row.setAttribute('draggable', 'true');
+                });
+
+                row.addEventListener('dragstart', (e) => {
+                    draggedGroupRowEl = row;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', row.dataset.group);
+                    row.classList.add('dragging');
+                });
+
+                row.addEventListener('dragend', () => {
+                    row.removeAttribute('draggable');
+                    row.classList.remove('dragging');
+                    draggedGroupRowEl = null;
+                    document.querySelectorAll('.draggable-group-row').forEach(r => r.classList.remove('drag-over'));
+                    saveReorderedGroups();
+                });
+
+                row.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    const targetRow = row;
+                    if (targetRow && targetRow !== draggedGroupRowEl) {
+                        const rect = targetRow.getBoundingClientRect();
+                        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+                        tbody.insertBefore(draggedGroupRowEl, next ? targetRow.nextSibling : targetRow);
+                    }
+                });
+            });
+        }
+
+        /* Lưu thứ tự group mới */
+        async function saveReorderedGroups() {
+            const tbody = document.getElementById('groups-mgmt-tbody');
+            if (!tbody) return;
+
+            const rows = tbody.querySelectorAll('.draggable-group-row');
+            const orderedGroups = Array.from(rows).map(r => r.dataset.group);
+            if (orderedGroups.length === 0) return;
+
+            systemGroups = orderedGroups;
+            updateClusterSelectors();
+
+            try {
+                const res = await fetch('/api/groups/reorder', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ordered_groups: orderedGroups })
+                });
+                if (!res.ok) throw new Error('Lỗi lưu thứ tự group');
+                showToast('Đã lưu thứ tự Group mới');
+            } catch (err) {
+                showToast(err.message);
+            }
+        }
+
+        window.toggleRowMenu = function(e, id) {
+            e.stopPropagation();
+            document.querySelectorAll('.action-dropdown-menu').forEach(m => {
+                if (m.id !== `menu-${id}`) m.classList.remove('show');
+            });
+            const menu = document.getElementById(`menu-${id}`);
+            if (menu) menu.classList.toggle('show');
+        };
+
+        /* Mở Web Terminal trong tab trình duyệt mới */
+        window.openTerminal = function(id, label, host) {
+            const url = `/terminal.html?id=${encodeURIComponent(id)}&label=${encodeURIComponent(label || '')}&host=${encodeURIComponent(host || '')}`;
+            window.open(url, '_blank');
+        };
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.action-dropdown-menu').forEach(m => m.classList.remove('show'));
+        });
+
+        /* ============================================================
+           VIEW 3.5: ĐỒNG BỘ FILE (source browser + dest picker + preflight)
+           ============================================================ */
+        let syncSourceId = '';
+        let syncBrowsePath = '';        // thư mục đang duyệt trên máy nguồn
+        let syncSelectedPath = '';      // đường dẫn file đã chọn (đồng bộ với ô nhập tay)
+        let syncDestIds = new Set();    // tập id máy đích đã tick
+        let syncOpenGroups = new Set(); // tập group đang xổ ra (mặc định thu gọn hết)
+        let syncJobId = null;
+        let syncPollTimer = null;
+        let syncInspectResult = null;   // kết quả /api/sync/inspect gần nhất
+
+        function syncIsOnline(id) {
+            const m = metricsMap[id];
+            return !!(m && m.status === 'online');
+        }
+
+        function syncFormatBytes(b) {
+            if (b === null || b === undefined) return '—';
+            if (b < 1024) return b + ' B';
+            if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+            if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
+            return (b / 1073741824).toFixed(2) + ' GB';
+        }
+
+        /* Nhóm server theo Group (giữ thứ tự systemGroups) */
+        function syncGroupedServers() {
+            const order = [];
+            const map = {};
+            const push = (g) => {
+                if (!map[g]) { map[g] = []; order.push(g); }
+                return map[g];
+            };
+            systemGroups.forEach(g => push(g)); // đảm bảo group có trước kể cả rỗng
+            serverConfigs.forEach(s => push(s.group || 'Default').push(s));
+            return order.map(g => ({ group: g, servers: map[g] })).filter(x => x.servers.length > 0);
+        }
+
+        async function renderSyncView(area) {
+            // Ngừng polling của job cũ khi render lại trang
+            if (syncPollTimer) { clearInterval(syncPollTimer); syncPollTimer = null; }
+
+            if (!serverConfigs.length) {
+                area.innerHTML = `<div class="sync-fs-empty">Chưa có server nào. Hãy thêm server ở trang Quản lý Server trước.</div>`;
+                return;
+            }
+            if (!syncSourceId || !serverConfigs.some(s => s.id === syncSourceId)) {
+                syncSourceId = serverConfigs[0].id;
+            }
+
+            area.innerHTML = `
+                <div class="sync-layout">
+                    <!-- CỘT TRÁI: chọn máy nguồn + duyệt file -->
+                    <div class="sync-panel">
+                        <div class="sync-panel-head">
+                            <h3>1. Máy nguồn &amp; file cần đồng bộ</h3>
+                        </div>
+                        <div class="sync-panel-body" style="padding-bottom: 8px;">
+                            <label class="field-label">Máy nguồn (chứa file)</label>
+                            <select class="modal-input" id="sync-source-select" onchange="syncOnSourceChange(this.value)">
+                                ${serverConfigs.map(s => {
+                                    const name = s.label ? `${s.label} — ${s.host}` : s.host;
+                                    return `<option value="${escapeHTML(s.id)}" ${s.id === syncSourceId ? 'selected' : ''}>${escapeHTML(name)}${syncIsOnline(s.id) ? '' : ' (offline)'}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
+                        <div class="sync-fs-toolbar">
+                            <button class="sync-btn-ghost" id="sync-fs-up" onclick="syncBrowseUp()" title="Lên 1 cấp">↑ Lên</button>
+                            <button class="sync-btn-ghost" id="sync-fs-home" onclick="syncBrowseTo('')" title="Về thư mục home">⌂ Home</button>
+                            <button class="sync-btn-ghost" id="sync-fs-reload" onclick="syncReload()" title="Tải lại">⟳</button>
+                            <input class="sync-fs-path" id="sync-fs-path" value="${escapeHTML(syncBrowsePath)}" placeholder="~ (home) — gõ đường dẫn rồi Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();syncBrowseTo(this.value.trim());}" title="Gõ đường dẫn tuyệt đối rồi nhấn Enter để tới nhanh">
+                        </div>
+                        <div class="sync-fs-list" id="sync-fs-list">
+                            <div class="sync-fs-empty">Đang tải…</div>
+                        </div>
+                        <div class="sync-panel-body" style="border-top: 1px solid var(--border-crisp);">
+                            <label class="field-label">Đường dẫn file nguồn (có thể dán trực tiếp)</label>
+                            <input class="modal-input sync-mono" id="sync-source-path" value="${escapeHTML(syncSelectedPath)}" placeholder="/root/example.conf" oninput="syncOnPathInput(this.value)">
+                            <div class="sync-note" style="margin-top: 6px;">Chọn file ở khung trên hoặc dán đường dẫn tuyệt đối vào đây — hai bên luôn khớp nhau.</div>
+                        </div>
+                    </div>
+
+                    <!-- CỘT PHẢI: chọn máy đích -->
+                    <div class="sync-panel">
+                        <div class="sync-panel-head">
+                            <h3>2. Máy đích nhận file</h3>
+                        </div>
+                        <div class="sync-panel-body" style="padding-bottom: 8px;">
+                            <label class="field-label">Đường dẫn đích (để trống = dùng đường dẫn nguồn)</label>
+                            <input class="modal-input sync-mono" id="sync-dest-path" placeholder="Mặc định: giống đường dẫn nguồn">
+                            <div class="sync-note" style="margin-top: 6px;">File đã tồn tại ở đích sẽ bị <b>ghi đè</b>.</div>
+                        </div>
+                        <div class="sync-panel-body" style="padding-top: 6px;">
+                            <div id="sync-dest-groups"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KHU VỰC KIỂM TRA & ĐỒNG BỘ -->
+                <div class="sync-preflight" id="sync-preflight"></div>
+                <div class="sync-actions-bar">
+                    <button class="sync-btn-primary" id="sync-btn-inspect" onclick="syncRunInspect()">Kiểm tra trước khi đồng bộ</button>
+                    <button class="sync-btn-primary" id="sync-btn-start" onclick="syncConfirmStart()" disabled style="display:none;">Bắt đầu đồng bộ</button>
+                    <button class="sync-btn-primary sync-btn-danger" id="sync-btn-cancel" onclick="syncCancelJob()" disabled style="display:none;">Hủy</button>
+                    <span class="sync-note" id="sync-action-hint"></span>
+                </div>
+            `;
+
+            syncRenderDestGroups();
+            syncLoadDir(syncBrowsePath);
+
+            // Event delegation cho danh sách file: đọc data-path qua dataset
+            // (đã được browser giải mã) nên an toàn với mọi ký tự trong tên file.
+            const fsList = document.getElementById('sync-fs-list');
+            if (fsList && !fsList.dataset.bound) {
+                fsList.dataset.bound = '1';
+                fsList.addEventListener('click', (ev) => {
+                    const item = ev.target.closest('.sync-fs-item');
+                    if (!item || !fsList.contains(item)) return;
+                    const p = item.dataset.path;
+                    if (p === undefined) return;
+                    if (item.dataset.dir === '1') syncLoadDir(p);
+                    else syncPickFile(p);
+                });
+            }
+        }
+
+        /* ---- Cột trái: duyệt file ---- */
+        window.syncOnSourceChange = function(id) {
+            syncSourceId = id;
+            syncSelectedPath = '';
+            syncBrowsePath = '';
+            syncInspectResult = null;
+            const inp = document.getElementById('sync-source-path');
+            if (inp) inp.value = '';
+            syncResetActions();
+            syncLoadDir('');
+        };
+
+        window.syncOnPathInput = function(val) {
+            syncSelectedPath = val.trim();
+            syncInspectResult = null;
+            syncResetActions();
+            // Highlight file khớp trong danh sách đang duyệt (nếu có)
+            document.querySelectorAll('.sync-fs-item[data-path]').forEach(el => {
+                el.classList.toggle('selected', el.dataset.path === syncSelectedPath);
+            });
+        };
+
+        window.syncBrowseTo = function(path) {
+            syncLoadDir(path);
+        };
+
+        window.syncReload = function() {
+            syncLoadDir(syncBrowsePath);
+        };
+
+        window.syncBrowseUp = function() {
+            if (!syncBrowsePath || syncBrowsePath === '/') return;
+            const idx = syncBrowsePath.replace(/\/$/, '').lastIndexOf('/');
+            const parent = idx <= 0 ? '/' : syncBrowsePath.slice(0, idx);
+            syncLoadDir(parent);
+        };
+
+        async function syncLoadDir(path) {
+            const listEl = document.getElementById('sync-fs-list');
+            const upBtn = document.getElementById('sync-fs-up');
+            if (!listEl) return;
+            listEl.innerHTML = `<div class="sync-fs-empty">Đang tải…</div>`;
+            if (upBtn) upBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/fs/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ server_id: syncSourceId, path: path || '' })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Không liệt kê được thư mục');
+
+                syncBrowsePath = data.path || '';
+                const pathBar = document.getElementById('sync-fs-path');
+                if (pathBar) { pathBar.value = syncBrowsePath; pathBar.title = syncBrowsePath; }
+                if (upBtn) upBtn.disabled = !(syncBrowsePath && syncBrowsePath !== '/');
+
+                const entries = (data.entries || []).slice().sort((a, b) => {
+                    if (a.is_dir !== b.is_dir) return a.is_dir ? -1 : 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                if (!entries.length) {
+                    listEl.innerHTML = `<div class="sync-fs-empty">Thư mục trống</div>`;
+                    return;
+                }
+
+                listEl.innerHTML = entries.map(e => {
+                    const full = (syncBrowsePath === '/' ? '' : syncBrowsePath) + '/' + e.name;
+                    if (e.is_dir) {
+                        // data-path là thuộc tính thuần — đọc lại qua dataset.path an toàn
+                        // với mọi ký tự (kể cả nháy đơn), không như inline onclick.
+                        return `<div class="sync-fs-item" data-path="${escapeHTML(full)}" data-dir="1">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon-cyan)" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            <span class="fs-name dir">${escapeHTML(e.name)}</span>
+                        </div>`;
+                    }
+                    const sel = full === syncSelectedPath ? ' selected' : '';
+                    return `<div class="sync-fs-item${sel}" data-path="${escapeHTML(full)}" data-file="1">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span class="fs-name">${escapeHTML(e.name)}</span>
+                        <span class="fs-size">${syncFormatBytes(e.size)}</span>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                listEl.innerHTML = `<div class="sync-fs-empty" style="color: var(--neon-red);">${escapeHTML(err.message)}</div>`;
+            }
+        }
+
+        window.syncPickFile = function(fullPath) {
+            // Bấm lại file đang chọn → bỏ chọn
+            const deselected = syncSelectedPath === fullPath;
+            syncSelectedPath = deselected ? '' : fullPath;
+            syncInspectResult = null;
+            syncResetActions();
+            const inp = document.getElementById('sync-source-path');
+            if (inp) inp.value = syncSelectedPath;
+            document.querySelectorAll('.sync-fs-item[data-path]').forEach(el => {
+                el.classList.toggle('selected', !deselected && el.dataset.path === fullPath);
+            });
+        };
+
+        /* ---- Cột phải: chọn máy đích (group thu gọn mặc định) ---- */
+        function syncRenderDestGroups() {
+            const wrap = document.getElementById('sync-dest-groups');
+            if (!wrap) return;
+            const grouped = syncGroupedServers();
+
+            wrap.innerHTML = grouped.map(({ group, servers }) => {
+                const candidates = servers.filter(s => s.id !== syncSourceId);
+                const checkedCount = candidates.filter(s => syncDestIds.has(s.id)).length;
+                const allChecked = candidates.length > 0 && checkedCount === candidates.length;
+                const open = syncOpenGroups.has(group);
+                return `<div class="sync-group-block">
+                    <div class="sync-group-head ${candidates.length ? 'clickable' : ''}" onclick="syncToggleGroupOpen('${escapeHTML(group)}')" title="Bấm để thu gọn / xổ danh sách máy">
+                        <svg class="grp-caret ${open ? 'open' : ''}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                        <span class="grp-name">${escapeHTML(group)}</span>
+                        ${checkedCount ? `<span class="count-badge">${checkedCount}</span>` : ''}
+                        <span class="grp-count">${candidates.length} máy</span>
+                        <input type="checkbox" ${allChecked ? 'checked' : ''} onclick="event.stopPropagation()" onchange="syncToggleGroup('${escapeHTML(group)}', this.checked)" ${candidates.length ? '' : 'disabled'} title="Chọn / bỏ chọn cả cụm">
+                    </div>
+                    <div class="sync-targets-scroll" ${open ? '' : 'hidden'}>
+                        ${candidates.length ? candidates.map(s => {
+                            const online = syncIsOnline(s.id);
+                            return `<label class="sync-target-item">
+                                <input type="checkbox" ${syncDestIds.has(s.id) ? 'checked' : ''} onchange="syncToggleTarget('${escapeHTML(s.id)}', this.checked)">
+                                <span class="node-dot ${online ? '' : 'offline'}" id="sync-dot-${escapeHTML(s.id)}"></span>
+                                <span class="tgt-label">${escapeHTML(s.label || s.id)}</span>
+                                <span class="tgt-host">${escapeHTML(s.host)}</span>
+                            </label>`;
+                        }).join('') : `<div class="sync-fs-empty" style="padding:12px;">Không có máy đích trong cụm này</div>`}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.syncToggleGroupOpen = function(group) {
+            if (syncOpenGroups.has(group)) syncOpenGroups.delete(group);
+            else syncOpenGroups.add(group);
+            syncRenderDestGroups();
+        };
+
+        window.syncToggleTarget = function(id, checked) {
+            if (checked) syncDestIds.add(id); else syncDestIds.delete(id);
+            syncInspectResult = null;
+            syncResetActions();
+            syncRenderDestGroups();
+        };
+
+        window.syncToggleGroup = function(group, checked) {
+            serverConfigs.forEach(s => {
+                if ((s.group || 'Default') === group && s.id !== syncSourceId) {
+                    if (checked) syncDestIds.add(s.id); else syncDestIds.delete(s.id);
+                }
+            });
+            syncInspectResult = null;
+            syncResetActions();
+            syncRenderDestGroups();
+        };
+
+        /* Cập nhật dot online/offline tại chỗ mỗi tick WS — không render lại
+           toàn bộ (tránh mất trạng thái checkbox). Trang sync render dot một
+           lần lúc mở tab, khi đó metricsMap có thể chưa có dữ liệu. */
+        function updateSyncStatusInPlace() {
+            // Máy đích
+            serverConfigs.forEach(s => {
+                const dot = document.getElementById(`sync-dot-${s.id}`);
+                if (dot) dot.className = `node-dot ${syncIsOnline(s.id) ? '' : 'offline'}`;
+            });
+            // Máy nguồn: dropdown — cập nhật hậu tố "(offline)"
+            const sel = document.getElementById('sync-source-select');
+            if (sel) {
+                Array.from(sel.options).forEach(opt => {
+                    const s = serverConfigs.find(x => x.id === opt.value);
+                    if (!s) return;
+                    const name = s.label ? `${s.label} — ${s.host}` : s.host;
+                    opt.textContent = name + (syncIsOnline(s.id) ? '' : ' (offline)');
+                });
+            }
+        }
+
+        /* ---- Reset khu vực action khi lựa chọn thay đổi ---- */
+        function syncResetActions() {
+            const inspectBtn = document.getElementById('sync-btn-inspect');
+            const startBtn = document.getElementById('sync-btn-start');
+            const cancelBtn = document.getElementById('sync-btn-cancel');
+            const hint = document.getElementById('sync-action-hint');
+            if (inspectBtn) inspectBtn.style.display = '';
+            if (startBtn) startBtn.style.display = 'none';
+            if (cancelBtn) { cancelBtn.style.display = 'none'; cancelBtn.disabled = true; }
+            if (hint) hint.textContent = '';
+            const pre = document.getElementById('sync-preflight');
+            if (pre) pre.innerHTML = '';
+            if (syncPollTimer) { clearInterval(syncPollTimer); syncPollTimer = null; }
+        }
+
+        /* ---- Bước 2: kiểm tra trước khi đồng bộ ---- */
+        window.syncRunInspect = async function() {
+            const srcPath = (document.getElementById('sync-source-path')?.value || '').trim();
+            if (!srcPath) { showToast('Chưa chọn file nguồn'); return; }
+            if (syncDestIds.size === 0) { showToast('Chưa chọn máy đích nào'); return; }
+
+            const destPath = (document.getElementById('sync-dest-path')?.value || '').trim();
+            const inspectBtn = document.getElementById('sync-btn-inspect');
+            if (inspectBtn) { inspectBtn.disabled = true; inspectBtn.textContent = 'Đang kiểm tra…'; }
+
+            try {
+                const res = await fetch('/api/sync/inspect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_id: syncSourceId,
+                        source_path: srcPath,
+                        dest_path: destPath,
+                        target_ids: Array.from(syncDestIds)
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Kiểm tra thất bại');
+                syncInspectResult = data;
+                syncRenderPreflight(data);
+            } catch (err) {
+                showToast(err.message);
+            } finally {
+                if (inspectBtn) { inspectBtn.disabled = false; inspectBtn.textContent = 'Kiểm tra trước khi đồng bộ'; }
+            }
+        };
+
+        function syncRenderPreflight(data) {
+            const pre = document.getElementById('sync-preflight');
+            if (!pre) return;
+            const src = data.source || {};
+            const info = src.info || {};
+
+            // Đếm số máy đích hợp lệ (ok && !same) để cho phép bắt đầu
+            const validTargets = (data.targets || []).filter(t => t.ok && !t.same);
+            const startBtn = document.getElementById('sync-btn-start');
+            const inspectBtn = document.getElementById('sync-btn-inspect');
+
+            let srcRow;
+            if (src.ok) {
+                srcRow = `<tr>
+                    <td><span class="sync-tag ok">File nguồn</span></td>
+                    <td class="sync-mono">${escapeHTML(data.source_path)}</td>
+                    <td class="sync-mono">${syncFormatBytes(info.size)}</td>
+                    <td class="sync-mono">${escapeHTML((info.hash || '').slice(0, 12) || '—')}</td>
+                    <td><span class="sync-tag ok">Sẵn sàng</span></td>
+                </tr>`;
+            } else {
+                srcRow = `<tr>
+                    <td><span class="sync-tag err">File nguồn</span></td>
+                    <td class="sync-mono">${escapeHTML(data.source_path)}</td>
+                    <td>—</td><td>—</td>
+                    <td><span class="sync-tag err">${escapeHTML(src.error || 'Không đọc được')}</span></td>
+                </tr>`;
+            }
+
+            const destRows = (data.targets || []).map(t => {
+                const name = `${escapeHTML(t.label || t.id)} <span class="tgt-host">${escapeHTML(t.host || '')}</span>`;
+                let tag, detail = '';
+                if (!t.reachable) {
+                    tag = `<span class="sync-tag err">Offline</span>`;
+                    detail = `<span style="color:var(--neon-red);">${escapeHTML(t.error || 'Không kết nối được')}</span>`;
+                } else if (!t.ok) {
+                    tag = `<span class="sync-tag err">Lỗi</span>`;
+                    detail = `<span style="color:var(--neon-red);">${escapeHTML(t.error || '')}</span>`;
+                } else if (t.same) {
+                    tag = `<span class="sync-tag muted">Giống nguồn</span>`;
+                    detail = `Đã có file, md5 trùng — bỏ qua`;
+                } else if (t.exists) {
+                    tag = `<span class="sync-tag warn">Ghi đè</span>`;
+                    detail = `Đang có ${syncFormatBytes(t.size)} · md5 ${escapeHTML((t.hash || '').slice(0, 8) || '—')}`;
+                } else {
+                    tag = `<span class="sync-tag ok">Mới</span>`;
+                    detail = `Chưa có file — sẽ tạo mới`;
+                }
+                return `<tr>
+                    <td>${name}</td>
+                    <td class="sync-mono">${escapeHTML(t.dest_dir || data.dest_dir)}</td>
+                    <td>${detail}</td>
+                    <td>${tag}</td>
+                </tr>`;
+            }).join('');
+
+            pre.innerHTML = `
+                <div class="sync-panel">
+                    <div class="sync-panel-head"><h3>3. Kết quả kiểm tra</h3></div>
+                    <div class="sync-panel-body">
+                        <label class="field-label">Máy nguồn</label>
+                        <table class="sync-check-table">
+                            <thead><tr><th></th><th>Đường dẫn</th><th>Kích thước</th><th>md5</th><th>Trạng thái</th></tr></thead>
+                            <tbody>${srcRow}</tbody>
+                        </table>
+                        <label class="field-label" style="margin-top: 14px;">Máy đích (${(data.targets || []).length})</label>
+                        <table class="sync-check-table">
+                            <thead><tr><th>Máy</th><th>Thư mục đích</th><th>Tình trạng file</th><th>Hành động</th></tr></thead>
+                            <tbody>${destRows || '<tr><td colspan="4" class="sync-fs-empty">Không có máy đích</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            if (inspectBtn) inspectBtn.style.display = 'none';
+            if (startBtn) {
+                startBtn.style.display = '';
+                startBtn.disabled = !(src.ok && validTargets.length > 0);
+            }
+            const hint = document.getElementById('sync-action-hint');
+            if (hint) {
+                if (!src.ok) hint.textContent = 'File nguồn không hợp lệ — không thể đồng bộ.';
+                else if (validTargets.length === 0) hint.textContent = 'Không có máy đích nào cần đồng bộ (offline, lỗi, hoặc đã giống nguồn).';
+                else hint.textContent = `Sẽ đồng bộ tới ${validTargets.length} máy.`;
+            }
+        }
+
+        /* ---- Bước 3: bắt đầu đồng bộ + polling ---- */
+        window.syncConfirmStart = function() {
+            if (!syncInspectResult) return;
+            const valid = (syncInspectResult.targets || []).filter(t => t.ok && !t.same);
+            openConfirmModal('Xác nhận đồng bộ',
+                `Đồng bộ "${syncInspectResult.source_path}" tới ${valid.length} máy đích? File trùng tên ở đích sẽ bị ghi đè.`,
+                syncStartJob);
+        };
+
+        async function syncStartJob() {
+            const data = syncInspectResult;
+            if (!data) return;
+            const validIds = (data.targets || []).filter(t => t.ok && !t.same).map(t => t.id);
+            const destPath = (document.getElementById('sync-dest-path')?.value || '').trim();
+
+            const startBtn = document.getElementById('sync-btn-start');
+            const cancelBtn = document.getElementById('sync-btn-cancel');
+            if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Đang khởi động…'; }
+
+            try {
+                const res = await fetch('/api/sync/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_id: syncSourceId,
+                        source_path: data.source_path,
+                        dest_path: destPath,
+                        target_ids: validIds
+                    })
+                });
+                const out = await res.json();
+                if (!res.ok) throw new Error(out.error || 'Không khởi động được');
+                syncJobId = out.job_id;
+                if (startBtn) startBtn.style.display = 'none';
+                if (cancelBtn) { cancelBtn.style.display = ''; cancelBtn.disabled = false; }
+                const hint = document.getElementById('sync-action-hint');
+                if (hint) hint.textContent = 'Đang đồng bộ…';
+                syncPollJob();
+                syncPollTimer = setInterval(syncPollJob, 1000);
+            } catch (err) {
+                showToast(err.message);
+                if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Bắt đầu đồng bộ'; }
+            }
+        }
+
+        async function syncPollJob() {
+            if (!syncJobId) return;
+            try {
+                const res = await fetch(`/api/sync/jobs/${syncJobId}?t=${Date.now()}`);
+                const out = await res.json();
+                if (!res.ok) throw new Error(out.error || 'Không đọc được trạng thái job');
+                syncRenderJob(out.job);
+                if (['done', 'failed', 'partial', 'cancelled'].includes(out.job.status)) {
+                    if (syncPollTimer) { clearInterval(syncPollTimer); syncPollTimer = null; }
+                    const cancelBtn = document.getElementById('sync-btn-cancel');
+                    if (cancelBtn) cancelBtn.disabled = true;
+                }
+            } catch (err) {
+                console.error('sync poll err', err);
+            }
+        }
+
+        function syncRenderJob(job) {
+            const pre = document.getElementById('sync-preflight');
+            if (!pre || !job) return;
+            const total = job.file_size || 0;
+
+            const rows = (job.targets || []).map(t => {
+                const pct = total > 0 ? Math.min(100, Math.round((t.progress || 0) / total * 100)) : 0;
+                let tag;
+                if (t.status === 'done') tag = `<span class="sync-tag ok">Xong</span>`;
+                else if (t.status === 'failed') tag = `<span class="sync-tag err">Lỗi</span>`;
+                else if (t.status === 'copying') tag = `<span class="sync-tag info">Đang copy</span>`;
+                else tag = `<span class="sync-tag muted">Chờ</span>`;
+                const errLine = t.error ? `<div style="color:var(--neon-red);font-size:.75rem;margin-top:3px;">${escapeHTML(t.error)}</div>` : '';
+                return `<tr>
+                    <td>${escapeHTML(t.label || t.id)} <span class="tgt-host">${escapeHTML(t.host || '')}</span></td>
+                    <td>
+                        <div class="sync-progress-track"><div class="sync-progress-fill ${t.status === 'done' ? 'done' : ''}" style="width:${pct}%"></div></div>
+                        <span class="sync-mono" style="margin-left:8px;">${pct}%</span>
+                        ${errLine}
+                    </td>
+                    <td>${tag}</td>
+                </tr>`;
+            }).join('');
+
+            const done = (job.targets || []).filter(t => t.status === 'done').length;
+            const cnt = (job.targets || []).length;
+            let statusTag;
+            if (job.status === 'done') statusTag = `<span class="sync-tag ok">Hoàn tất ${done}/${cnt}</span>`;
+            else if (job.status === 'partial') statusTag = `<span class="sync-tag warn">Một phần ${done}/${cnt}</span>`;
+            else if (job.status === 'failed') statusTag = `<span class="sync-tag err">Thất bại</span>`;
+            else if (job.status === 'cancelled') statusTag = `<span class="sync-tag muted">Đã hủy</span>`;
+            else statusTag = `<span class="sync-tag info">Đang chạy ${done}/${cnt}</span>`;
+
+            pre.innerHTML = `
+                <div class="sync-panel">
+                    <div class="sync-panel-head"><h3>4. Tiến trình đồng bộ ${statusTag}</h3></div>
+                    <div class="sync-panel-body">
+                        <div class="sync-note" style="margin-bottom:10px;">
+                            Nguồn <span class="sync-mono">${escapeHTML(job.source_path)}</span>
+                            · ${syncFormatBytes(total)} · md5 <span class="sync-mono">${escapeHTML((job.file_hash || '').slice(0,12) || '—')}</span>
+                        </div>
+                        <table class="sync-check-table">
+                            <thead><tr><th>Máy đích</th><th>Tiến trình</th><th>Trạng thái</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.syncCancelJob = async function() {
+            if (!syncJobId) return;
+            try {
+                await fetch('/api/sync/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: syncJobId })
+                });
+                showToast('Đã gửi lệnh hủy');
+            } catch (err) {
+                showToast(err.message);
+            }
+        };
+
+        /* ============================================================
+           VIEW 4: SETTINGS (Cài đặt hệ thống + Quản lý Proxy)
+           ============================================================ */
+        async function renderSettingsView(area) {
+            let configPath = '';
+            try {
+                const res = await fetch('/api/settings?t=' + Date.now());
+                const data = await res.json();
+                configPath = data.config_path || '';
+            } catch(e) {}
+            await fetchProxies();
+
+            // Đếm số server đang dùng từng proxy
+            const proxyUsage = {};
+            serverConfigs.forEach(s => {
+                if (s.proxy_id) proxyUsage[s.proxy_id] = (proxyUsage[s.proxy_id] || 0) + 1;
+            });
+
+            let proxyRows = '';
+            if (proxyList.length === 0) {
+                proxyRows = `<tr><td colspan="5" style="text-align: center; padding: 28px; color: #94a3b8;">Chưa có proxy nào. Bấm <strong style="color:#e2e8f0;">+ Thêm Proxy</strong> để tạo — dùng khi server chỉ cho phép SSH từ một số IP nhất định.</td></tr>`;
+            } else {
+                proxyList.forEach(p => {
+                    const usage = proxyUsage[p.id] || 0;
+                    proxyRows += `
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600; color: #f1f5f9;">${escapeHTML(p.name)}</div>
+                            <div style="font-family: var(--font-mono); font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">${escapeHTML(p.type)}://${escapeHTML(p.host)}:${p.port}${p.username ? ' · có auth' : ''}</div>
+                        </td>
+                        <td><span style="font-family: var(--font-mono); font-size: 0.78rem; color: #7dd3fc; background: rgba(125,211,252,0.1); padding: 2px 8px; border-radius: 4px;">${escapeHTML(p.type.toUpperCase())}</span></td>
+                        <td style="font-family: var(--font-mono); color: #cbd5e1; white-space: nowrap;">${usage} server</td>
+                        <td><span class="prx-status" id="prx-status-${escapeHTML(p.id)}" style="font-size: 0.78rem; color: #64748b;">—</span></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #7dd3fc;" onclick="testSavedProxy('${escapeHTML(p.id)}')" title="Test kết nối proxy này">🔌 Test</button>
+                            <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #cbd5e1;" onclick="openProxyModal('${escapeHTML(p.id)}')" title="Sửa proxy">✏️ Sửa</button>
+                            <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #f87171;" onclick="deleteProxy('${escapeHTML(p.id)}', '${escapeHTML(p.name)}', ${usage})" title="Xóa proxy">🗑️</button>
+                        </td>
+                    </tr>`;
+                });
+            }
+
+            area.innerHTML = `
+                <div class="settings-layout">
+                    <nav class="settings-sidebar">
+                        <button class="settings-nav-item active" data-section="general" onclick="switchSettingsSection('general')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            <span>Cài Đặt Hệ Thống</span>
+                        </button>
+                        <button class="settings-nav-item" data-section="proxy" onclick="switchSettingsSection('proxy')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Proxy</span>
+                            <span class="count-badge" style="margin-left: auto;">${proxyList.length}</span>
+                        </button>
+                    </nav>
+
+                    <div class="settings-content">
+                        <section data-section="general">
+                            <div class="table-title-bar">
+                                <h3>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #94a3b8;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                                    <span>Cài Đặt Hệ Thống</span>
+                                </h3>
+                            </div>
+
+                            <div class="table-container" style="margin-bottom: 24px;">
+                                <div style="padding: 24px;">
+                                    <label class="field-label" style="display: block; margin-bottom: 6px; color: #e2e8f0; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.03em;">FILE CẤU HÌNH (servers.json)</label>
+                                    <div style="font-size: 0.82rem;">
+                                        <code style="color: #fdba74; background: rgba(148,163,184,0.12); padding: 6px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.78rem; display: inline-block; word-break: break-all;">${escapeHTML(configPath)}</code>
+                                    </div>
+                                    <div style="margin-top: 8px; font-size: 0.78rem; color: #94a3b8;">
+                                        Danh sách server, group và <strong style="color:#e2e8f0;">proxy</strong> đều lưu trong file này. Nếu chưa có, hệ thống tự tạo file rỗng chuẩn cấu trúc khi khởi động.
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section data-section="proxy" hidden>
+                            <div class="table-title-bar">
+                                <h3>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #94a3b8;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <span>Danh Sách Proxy</span>
+                                    <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 600;">(${proxyList.length})</span>
+                                </h3>
+                                <button class="btn-create-server" onclick="openProxyModal()" title="Thêm proxy mới">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    <span>+ Thêm Proxy</span>
+                                </button>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="wb-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Proxy</th>
+                                            <th style="width: 110px;">Loại</th>
+                                            <th style="width: 130px;">Đang dùng</th>
+                                            <th style="width: 200px;">Trạng thái test</th>
+                                            <th style="width: 210px; text-align: right;">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${proxyRows}</tbody>
+                                </table>
+                            </div>
+
+                            <div style="margin-top: 14px; font-size: 0.78rem; color: #94a3b8; line-height: 1.6;">
+                                💡 Gán proxy cho từng server trong modal <strong style="color:#e2e8f0;">Thêm/Sửa Server</strong> → ô "Proxy kết nối". Server không gán proxy sẽ kết nối trực tiếp. Xóa proxy sẽ tự gỡ khỏi các server đang dùng (về kết nối trực tiếp).
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            `;
+
+            // Giữ nguyên section đang xem sau mỗi lần re-render
+            switchSettingsSection(activeSettingsSection);
+        }
+
+        let activeSettingsSection = localStorage.getItem('wb_settings_section') || 'general';
+
+        window.switchSettingsSection = function(section) {
+            activeSettingsSection = section;
+            localStorage.setItem('wb_settings_section', section);
+            const layout = document.querySelector('.settings-layout');
+            if (!layout) return;
+            layout.querySelectorAll('.settings-nav-item').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.section === section);
+            });
+            layout.querySelectorAll('.settings-content > section').forEach(sec => {
+                sec.hidden = sec.dataset.section !== section;
+            });
+        }
+
+        /* ============================================================
+           PROXY MODAL HANDLERS
+           ============================================================ */
+        let editingProxyId = null;
+
+        window.openProxyModal = function(id = null) {
+            editingProxyId = id;
+            const title = document.getElementById('modal-proxy-title');
+            const saveBtn = document.getElementById('btn-save-proxy');
+            hideProxyTestResult();
+
+            if (editingProxyId) {
+                title.textContent = 'Sửa Proxy';
+                saveBtn.textContent = 'Lưu Thay Đổi';
+                const p = proxyList.find(x => x.id === editingProxyId);
+                if (p) {
+                    document.getElementById('inp-prx-name').value = p.name || '';
+                    document.getElementById('inp-prx-type').value = p.type || 'socks5';
+                    document.getElementById('inp-prx-host').value = p.host || '';
+                    document.getElementById('inp-prx-port').value = p.port || 1080;
+                    document.getElementById('inp-prx-user').value = p.username || '';
+                    document.getElementById('inp-prx-pass').value = p.password || '';
+                }
+            } else {
+                title.textContent = 'Thêm Proxy';
+                saveBtn.textContent = 'Lưu Proxy';
+                document.getElementById('inp-prx-name').value = '';
+                document.getElementById('inp-prx-type').value = 'socks5';
+                document.getElementById('inp-prx-host').value = '';
+                document.getElementById('inp-prx-port').value = 1080;
+                document.getElementById('inp-prx-user').value = '';
+                document.getElementById('inp-prx-pass').value = '';
+            }
+            document.getElementById('inp-prx-pass').type = 'password';
+            document.getElementById('modal-proxy').classList.add('active');
+        };
+
+        window.closeModalProxy = function() {
+            document.getElementById('modal-proxy').classList.remove('active');
+            editingProxyId = null;
+        };
+
+        window.toggleProxyPassword = function() {
+            const inp = document.getElementById('inp-prx-pass');
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+        };
+
+        function collectProxyForm() {
+            return {
+                name: document.getElementById('inp-prx-name').value.trim(),
+                type: document.getElementById('inp-prx-type').value,
+                host: document.getElementById('inp-prx-host').value.trim(),
+                port: parseInt(document.getElementById('inp-prx-port').value) || 0,
+                username: document.getElementById('inp-prx-user').value.trim(),
+                password: document.getElementById('inp-prx-pass').value
+            };
+        }
+
+        function showProxyTestResult(ok, text) {
+            const box = document.getElementById('prx-test-result');
+            box.style.display = 'block';
+            box.style.background = ok ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+            box.style.border = `1px solid ${ok ? '#22c55e' : '#ef4444'}`;
+            box.style.color = ok ? '#4ade80' : '#fca5a5';
+            box.textContent = text;
+        }
+
+        function hideProxyTestResult() {
+            document.getElementById('prx-test-result').style.display = 'none';
+        }
+
+        // Test proxy ngay trong modal (chưa cần lưu)
+        window.testProxyFromModal = async function() {
+            const btn = document.getElementById('btn-test-proxy');
+            btn.disabled = true;
+            btn.textContent = '⏳ Đang test...';
+            hideProxyTestResult();
+            try {
+                const res = await fetch('/api/proxies/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(collectProxyForm())
+                });
+                if (!res.ok) {
+                    let msg = 'HTTP ' + res.status;
+                    try {
+                        const err = await res.json();
+                        if (err.error) msg = err.error;
+                    } catch(_) {}
+                    showProxyTestResult(false, '❌ ' + msg);
+                    return;
+                }
+                const data = await res.json();
+                if (data.ok) {
+                    showProxyTestResult(true, `✅ Proxy hoạt động tốt (latency ${data.latency}ms)`);
+                } else {
+                    showProxyTestResult(false, '❌ Không kết nối được: ' + data.error);
+                }
+            } catch(e) {
+                showProxyTestResult(false, '❌ Lỗi: ' + e.message);
+            }
+            btn.disabled = false;
+            btn.textContent = '🔌 Test kết nối';
+        };
+
+        // Test proxy đã lưu — hiện kết quả ngay trên bảng
+        window.testSavedProxy = async function(id) {
+            const statusEl = document.getElementById('prx-status-' + id);
+            const p = proxyList.find(x => x.id === id);
+            if (!p || !statusEl) return;
+            statusEl.textContent = '⏳ Đang test...';
+            statusEl.style.color = '#94a3b8';
+            try {
+                const res = await fetch('/api/proxies/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(p)
+                });
+                if (!res.ok) {
+                    statusEl.textContent = '❌ HTTP ' + res.status;
+                    statusEl.style.color = '#fca5a5';
+                    return;
+                }
+                const data = await res.json();
+                if (data.ok) {
+                    statusEl.textContent = `✅ OK (${data.latency}ms)`;
+                    statusEl.style.color = '#4ade80';
+                } else {
+                    statusEl.textContent = '❌ ' + data.error;
+                    statusEl.style.color = '#fca5a5';
+                    statusEl.title = data.error;
+                }
+            } catch(e) {
+                statusEl.textContent = '❌ Lỗi: ' + e.message;
+                statusEl.style.color = '#fca5a5';
+            }
+        };
+
+        window.handleProxySubmit = async function(e) {
+            e.preventDefault();
+            const payload = collectProxyForm();
+            if (!payload.host) { showToast('Vui lòng nhập Host proxy'); return; }
+            try {
+                const url = editingProxyId ? `/api/proxies/${editingProxyId}` : '/api/proxies';
+                const method = editingProxyId ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    let msg = 'Không thể lưu proxy (HTTP ' + res.status + ')';
+                    try {
+                        const err = await res.json();
+                        if (err.error) msg = err.error;
+                    } catch(_) {}
+                    throw new Error(msg);
+                }
+                showToast(editingProxyId ? 'Đã cập nhật proxy' : `Đã thêm proxy "${payload.name || payload.host}"`);
+                closeModalProxy();
+                await fetchProxies();
+                renderSettingsView(document.getElementById('workbench-content-area'));
+            } catch(err) {
+                showToast(err.message);
+            }
+        };
+
+        window.deleteProxy = async function(id, name, usage) {
+            let msg = `Xác nhận xóa proxy "${name}"?`;
+            if (usage > 0) msg += `\n${usage} server đang dùng proxy này sẽ chuyển về kết nối trực tiếp.`;
+            if (!confirm(msg)) return;
+            try {
+                const res = await fetch(`/api/proxies/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Lỗi xóa proxy');
+                showToast(`Đã xóa proxy "${name}"`);
+                await fetchProxies();
+                await refreshServerConfigs();
+            } catch(err) {
+                showToast(err.message);
+            }
+        };
+
+        /* ============================================================
+           MODAL HANDLERS
+           ============================================================ */
+        window.openAddGroupModal = function() {
+            document.getElementById('inp-grp-name').value = '';
+            document.getElementById('modal-group').classList.add('active');
+        };
+        window.closeModalGroup = function() {
+            document.getElementById('modal-group').classList.remove('active');
+        };
+
+        window.handleGroupSubmit = async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('inp-grp-name').value.trim();
+            if (!name) return;
+            try {
+                const res = await fetch('/api/groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || 'Lỗi tạo group');
+                }
+                showToast(`Đã tạo group "${name}"`);
+                closeModalGroup();
+                await fetchGroups();
+                await refreshServerConfigs();
+            } catch (err) {
+                showToast(err.message);
+            }
+        };
+
+        window.openEditGroupModal = function(oldName) {
+            document.getElementById('inp-old-grp').value = oldName;
+            document.getElementById('inp-new-grp').value = oldName;
+            document.getElementById('modal-edit-group').classList.add('active');
+        };
+        window.closeModalEditGroup = function() {
+            document.getElementById('modal-edit-group').classList.remove('active');
+        };
+
+        window.handleEditGroupSubmit = async function(e) {
+            e.preventDefault();
+            const oldName = document.getElementById('inp-old-grp').value;
+            const newName = document.getElementById('inp-new-grp').value.trim();
+            if (!newName || newName === oldName) {
+                closeModalEditGroup();
+                return;
+            }
+            try {
+                const res = await fetch(`/api/groups/${encodeURIComponent(oldName)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_name: newName })
+                });
+                if (!res.ok) throw new Error('Không thể đổi tên group');
+                showToast(`Đã đổi tên group thành "${newName}"`);
+                closeModalEditGroup();
+                await fetchGroups();
+                await refreshServerConfigs();
+            } catch (err) {
+                showToast(err.message);
+            }
+        };
+
+        window.deleteGroup = async function(name, count) {
+            let msg = `Xác nhận xóa group "${name}"?`;
+            if (count > 0) msg += `\n${count} máy chủ thuộc group này sẽ chuyển về "Default".`;
+            if (!confirm(msg)) return;
+            try {
+                const res = await fetch(`/api/groups/${encodeURIComponent(name)}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Lỗi xóa group');
+                showToast(`Đã xóa group "${name}"`);
+                await fetchGroups();
+                await refreshServerConfigs();
+            } catch (err) {
+                showToast(err.message);
+            }
+        };
+
+        window.openAddServerModal = function(id = null) {
+            editingServerId = id;
+            updateClusterSelectors();
+            updateProxySelector();
+            const title = document.getElementById('modal-server-title');
+            const saveBtn = document.getElementById('btn-save-server');
+
+            if (editingServerId) {
+                title.textContent = 'Sửa Cấu Hình Server';
+                saveBtn.textContent = 'Lưu Thay Đổi';
+                const s = serverConfigs.find(x => x.id === editingServerId);
+                if (s) {
+                    document.getElementById('inp-srv-label').value = s.label || '';
+                    document.getElementById('inp-srv-group').value = s.group || (systemGroups[0] || '');
+                    document.getElementById('inp-srv-host').value = s.host || '';
+                    document.getElementById('inp-srv-port').value = s.port || 22;
+                    document.getElementById('inp-srv-user').value = s.user || 'root';
+                    document.getElementById('inp-srv-pass').value = s.password || '';
+                    document.getElementById('inp-srv-key').value = s.key_path || '';
+                    document.getElementById('inp-srv-proxy').value = s.proxy_id || '';
+                }
+            } else {
+                title.textContent = 'Thêm Server Mới';
+                saveBtn.textContent = 'Thêm Server';
+                document.getElementById('inp-srv-label').value = '';
+                document.getElementById('inp-srv-host').value = '';
+                document.getElementById('inp-srv-port').value = 22;
+                document.getElementById('inp-srv-user').value = 'root';
+                document.getElementById('inp-srv-pass').value = '';
+                document.getElementById('inp-srv-key').value = '';
+                document.getElementById('inp-srv-proxy').value = '';
+                if (selectedCluster !== 'all' && systemGroups.includes(selectedCluster)) {
+                    document.getElementById('inp-srv-group').value = selectedCluster;
+                } else {
+                    document.getElementById('inp-srv-group').value = 'Default';
+                }
+            }
+            setPasswordVisible(false);
+            document.getElementById('modal-server').classList.add('active');
+        };
+
+        // Đổ danh sách proxy vào dropdown của modal server
+        function updateProxySelector() {
+            const sel = document.getElementById('inp-srv-proxy');
+            if (!sel) return;
+            const cur = sel.value;
+            let opts = '<option value="">Trực tiếp (không qua proxy)</option>';
+            proxyList.forEach(p => {
+                opts += `<option value="${escapeHTML(p.id)}">${escapeHTML(p.name)} (${escapeHTML(p.type)}://${escapeHTML(p.host)}:${p.port})</option>`;
+            });
+            sel.innerHTML = opts;
+            sel.value = cur;
+        }
+
+        // Hiện/ẩn mật khẩu trong modal server (tool local, không lo bảo mật)
+        function setPasswordVisible(visible) {
+            const inp = document.getElementById('inp-srv-pass');
+            const iconEye = document.getElementById('icon-eye');
+            const iconEyeOff = document.getElementById('icon-eye-off');
+            if (inp) inp.type = visible ? 'text' : 'password';
+            if (iconEye) iconEye.style.display = visible ? 'none' : '';
+            if (iconEyeOff) iconEyeOff.style.display = visible ? '' : 'none';
+        }
+
+        window.togglePasswordVisibility = function() {
+            const inp = document.getElementById('inp-srv-pass');
+            if (!inp) return;
+            setPasswordVisible(inp.type === 'password');
+        };
+
+        window.closeModalServer = function() {
+            document.getElementById('modal-server').classList.remove('active');
+            editingServerId = null;
+        };
+
+        window.handleServerSubmit = async function(e) {
+            e.preventDefault();
+            const payload = {
+                label: document.getElementById('inp-srv-label').value.trim(),
+                group: document.getElementById('inp-srv-group').value,
+                host: document.getElementById('inp-srv-host').value.trim(),
+                port: parseInt(document.getElementById('inp-srv-port').value) || 22,
+                user: document.getElementById('inp-srv-user').value.trim() || 'root',
+                password: document.getElementById('inp-srv-pass').value,
+                key_path: document.getElementById('inp-srv-key').value.trim(),
+                proxy_id: document.getElementById('inp-srv-proxy').value
+            };
+
+            if (!payload.host) {
+                showToast('Vui lòng nhập Host / IP');
+                return;
+            }
+            if (!payload.group) {
+                showToast('Vui lòng chọn Cụm');
+                return;
+            }
+            // Label để trống → backend tự điền bằng Host
+            const displayLabel = payload.label || payload.host;
+
+            try {
+                if (editingServerId) {
+                    const res = await fetch(`/api/servers/${editingServerId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error('Không thể cập nhật server');
+                    const updated = await res.json();
+                    const finalLabel = updated.label || displayLabel;
+                    showToast(`Đã cập nhật server "${finalLabel}"`);
+                    const found = serverConfigs.find(x => x.id === editingServerId);
+                    if (found) {
+                        found.label = finalLabel;
+                        found.group = payload.group;
+                        found.host = payload.host;
+                        found.port = payload.port;
+                        found.user = payload.user;
+                        found.key_path = payload.key_path;
+                        found.proxy_id = payload.proxy_id;
+                    }
+                } else {
+                    const res = await fetch('/api/servers', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error('Không thể thêm server mới');
+                    const newSrv = await res.json();
+                    showToast(`Đã thêm server "${newSrv.label || displayLabel}"`);
+                    serverConfigs.push(newSrv);
+                }
+                closeModalServer();
+                renderViewContent();
+                refreshServerConfigs();
+            } catch (err) {
+                showToast(err.message);
+            }
+        };
+
+        window.editServer = function(id) {
+            openAddServerModal(id);
+        };
+
+        // Custom Confirm Modal Logic
+        let confirmCallback = null;
+        window.openConfirmModal = function(title, message, callback) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').innerHTML = message;
+            confirmCallback = callback;
+            document.getElementById('modal-confirm').classList.add('active');
+        };
+        window.closeConfirmModal = function() {
+            document.getElementById('modal-confirm').classList.remove('active');
+            confirmCallback = null;
+        };
+        document.getElementById('btn-confirm-ok').addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+            closeConfirmModal();
+        });
+
+        window.deleteServer = function(id, host) {
+            openConfirmModal('Xóa Server', `Xác nhận xóa server <strong>${escapeHTML(host)}</strong>?<br><span style="color:#94a3b8;font-size:0.85rem;">Hành động này không thể hoàn tác.</span>`, async () => {
+                try {
+                    const res = await fetch(`/api/servers/${id}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Không thể xóa server');
+                    showToast(`Đã xóa server "${host}"`);
+                    serverConfigs = serverConfigs.filter(x => x.id !== id);
+                    renderViewContent();
+                    refreshServerConfigs();
+                } catch (err) {
+                    showToast(err.message);
+                }
+            });
+        };
+
+        window.deleteGroup = function(groupName, count) {
+            if (count > 0) {
+                showToast('Group này đang chứa server, không thể xóa!');
+                return;
+            }
+            openConfirmModal('Xóa Group', `Xác nhận xóa group "${groupName}"?`, async () => {
+                try {
+                    const res = await fetch(`/api/groups/${groupName}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Không thể xóa group');
+                    showToast(`Đã xóa group "${groupName}"`);
+                    systemGroups = systemGroups.filter(g => g !== groupName);
+                    if (selectedCluster === groupName) {
+                        selectedCluster = 'all';
+                        localStorage.setItem('wb_selected_cluster', 'all');
+                    }
+                    updateClusterSelectors();
+                    renderViewContent();
+                    document.getElementById('sb-count-groups').textContent = systemGroups.length;
+                } catch (err) {
+                    showToast(err.message);
+                }
+            });
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const search = document.getElementById('top-search-input');
+                if (search && search.offsetParent !== null) search.focus();
+            }
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        /* Startup — Nạp dữ liệu cấu hình song song trước */
+        document.getElementById('top-interval-select').value = String(refreshIntervalMs);
+        const startupLabelEl = document.getElementById('wb-live-label');
+        if (startupLabelEl) startupLabelEl.textContent = 'Live ' + (refreshIntervalMs / 1000) + 's';
+        
+        Promise.all([fetchGroups(), fetchProxies(), refreshServerConfigs()]).then(() => {
+            connectWebSocket();
+            switchViewTab(currentView, true);
+        });
+
+    })();
+    </script>
+</body>
+</html>
