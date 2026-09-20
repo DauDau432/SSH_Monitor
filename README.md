@@ -57,7 +57,7 @@ go build -o ssh-monitor .
 - đường dẫn private key
 - proxy credentials
 
-File này đã được loại khỏi Git bằng `.gitignore` và **không được commit**.
+File này sẽ tự tạo cấu trúc chuẩn khi chạy ứng dụng nếu nó chưa có.
 
 Ứng dụng hiện dùng `ssh.InsecureIgnoreHostKey()` và không xác minh host key. Chỉ chạy trong network tin cậy, không expose port `8080` trực tiếp ra Internet. Nên đặt sau firewall, VPN hoặc reverse proxy có authentication.
 
