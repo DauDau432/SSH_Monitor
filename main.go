@@ -23,6 +23,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
@@ -1595,6 +1596,22 @@ func (app *App) SetupRoutes() http.Handler {
 
 // ========================== Utility Functions ==========================
 
+// setConsoleTitle — Đặt tiêu đề cửa sổ terminal (hiện trên thanh title của cmd).
+// Windows: gọi SetConsoleTitleW của kernel32. Linux/macOS: gửi chuỗi escape OSC.
+func setConsoleTitle(title string) {
+	switch runtime.GOOS {
+	case "windows":
+		kernel32 := syscall.NewLazyDLL("kernel32.dll")
+		proc := kernel32.NewProc("SetConsoleTitleW")
+		p, err := syscall.UTF16PtrFromString(title)
+		if err == nil {
+			proc.Call(uintptr(unsafe.Pointer(p)))
+		}
+	default:
+		fmt.Printf("\033]0;%s\007", title)
+	}
+}
+
 // generateServerID — Tạo ID dạng số tự động tăng
 func (app *App) generateServerID() string {
 	app.configMu.Lock()
@@ -1694,6 +1711,9 @@ func ensureConfigFileExists(path string) error {
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
+	// Đặt tiêu đề cửa sổ terminal: SSH Monitor vX.X.X
+	setConsoleTitle("SSH Monitor v" + AppVersion)
+
 	configPath := getConfigPath()
 	// Đảm bảo file servers.json tồn tại
 	if err := ensureConfigFileExists(configPath); err != nil {
@@ -1741,9 +1761,8 @@ func main() {
 	// Start server
 	fmt.Println()
 	fmt.Println("╔══════════════════════════════════════════════════╗")
-	fmt.Printf("║  %-48s║\n", "SSH Monitor v"+AppVersion)
+	fmt.Printf("║  %-48s║\n", "SSH Monitor — VPS Dashboard")
 	fmt.Printf("║  %-48s║\n", "URL: http://localhost"+ServerPort)
-	fmt.Printf("║  %-48s║\n", "Repo: "+repoURL())
 	fmt.Printf("║  %-48s║\n", "Config: "+filepath.Base(configPath))
 	fmt.Printf("║  %-48s║\n", fmt.Sprintf("Monitoring: %d servers", len(app.config.Servers)))
 	fmt.Printf("║  %-48s║\n", "Press Ctrl+C to stop")
