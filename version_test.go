@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestCompareVersions(t *testing.T) {
 	cases := []struct {
@@ -41,12 +44,18 @@ func TestParseVersionParts(t *testing.T) {
 }
 
 func TestCommitNewerThanVersion(t *testing.T) {
-	// AppVersion = 2026.9.26 → mốc cuối ngày 2026-09-26
-	if commitNewerThanVersion("2026-09-27T00:00:00Z") != true {
-		t.Error("commit sau ngày version phải là true")
+	// Mốc = cuối ngày của AppVersion. Tính ngày sau mốc 1 cách linh hoạt
+	// để test không phụ thuộc giá trị AppVersion cụ thể.
+	p := parseVersionParts(AppVersion)
+	vDay := time.Date(p[0], time.Month(p[1]), p[2], 0, 0, 0, 0, time.UTC)
+	after := vDay.AddDate(0, 0, 2).Format(time.RFC3339)  // sau mốc → true
+	before := vDay.AddDate(0, 0, -1).Format(time.RFC3339) // trước mốc → false
+
+	if commitNewerThanVersion(after) != true {
+		t.Errorf("commit %s sau ngày version phải là true", after)
 	}
-	if commitNewerThanVersion("2026-09-25T00:00:00Z") != false {
-		t.Error("commit trước ngày version phải là false")
+	if commitNewerThanVersion(before) != false {
+		t.Errorf("commit %s trước ngày version phải là false", before)
 	}
 	if commitNewerThanVersion("không-phải-ngày") != false {
 		t.Error("ngày không hợp lệ phải là false")

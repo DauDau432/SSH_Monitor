@@ -18,7 +18,7 @@ import (
 
 // AppVersion — Phiên bản hiện tại của ứng dụng (định dạng YYYY.M.D).
 // Mỗi lần phát hành bản mới, sửa hằng số này thành ngày phát hành.
-const AppVersion = "2026.9.26"
+const AppVersion = "2026.9.27"
 
 const (
 	// GitHubRepoOwner / GitHubRepoName — Repo nguồn để kiểm tra cập nhật
