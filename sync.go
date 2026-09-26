@@ -345,6 +345,7 @@ func (app *App) handleFSList(w http.ResponseWriter, r *http.Request) {
 
 	raw := strings.TrimSpace(req.Path)
 	var cmd string
+	isFileReq := false
 	if raw == "" || raw == "~" {
 		// Mặc định mở thư mục home của user SSH
 		cmd = `P="$HOME"; cd "$P" 2>/dev/null || { echo "CANNOT_CD"; exit 0; }`
@@ -354,7 +355,11 @@ func (app *App) handleFSList(w http.ResponseWriter, r *http.Request) {
 			httpError(w, perr.Error(), http.StatusBadRequest)
 			return
 		}
-		cmd = fmt.Sprintf(`P=%s; cd "$P" 2>/dev/null || { echo "CANNOT_CD"; exit 0; }`, shellQuote(path))
+		// Nếu đường dẫn là file: báo ISFILE và duyệt thư mục chứa nó
+		cmd = fmt.Sprintf(`P=%s
+if [ -f "$P" ]; then echo "ISFILE"; P=$(dirname "$P"); fi
+cd "$P" 2>/dev/null || { echo "CANNOT_CD"; exit 0; }`, shellQuote(path))
+		isFileReq = true
 	}
 	cmd += `
 echo "PATH=$(pwd -P)"
@@ -372,12 +377,17 @@ done`
 	resolvedPath := raw
 	entries := []fsEntry{}
 	cannotCD := false
+	isFile := false
 
 	for _, line := range strings.Split(string(out), "\n") {
 		line = strings.TrimRight(line, "\r")
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "CANNOT_CD" {
 			cannotCD = true
+			continue
+		}
+		if trimmed == "ISFILE" {
+			isFile = true
 			continue
 		}
 		if strings.HasPrefix(trimmed, "PATH=") {
@@ -406,11 +416,17 @@ done`
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	resp := map[string]interface{}{
 		"path":    resolvedPath,
 		"parent":  parentPath(resolvedPath),
 		"entries": entries,
-	})
+	}
+	// Đường dẫn là file: báo để frontend tự chọn file đó và duyệt thư mục chứa nó
+	if isFileReq && isFile {
+		resp["is_file"] = true
+		resp["file_path"] = raw
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // parentPath — Đường dẫn cha (dùng cho nút "Lên 1 cấp")

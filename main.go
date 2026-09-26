@@ -1564,6 +1564,10 @@ func (app *App) SetupRoutes() http.Handler {
 		httpError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
 
+	// Version & kiểm tra cập nhật
+	mux.HandleFunc("/api/version", app.handleVersion)
+	mux.HandleFunc("/api/update/check", app.handleUpdateCheck)
+
 	// WebSocket
 	mux.HandleFunc("/ws", app.handleWebSocket)
 	mux.HandleFunc("/ws/terminal/", app.handleTerminalWS)

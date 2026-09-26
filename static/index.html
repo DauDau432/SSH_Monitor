@@ -342,6 +342,174 @@
             gap: 8px;
         }
 
+        /* Phiên bản + thông báo cập nhật + liên hệ (góc phải topbar) */
+        .app-version-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: default;
+        }
+        .app-version-chip.has-update {
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.5);
+            background-color: rgba(251, 191, 36, 0.1);
+            cursor: pointer;
+        }
+        .app-version-chip.has-update:hover {
+            background-color: rgba(251, 191, 36, 0.18);
+        }
+
+        .btn-telegram {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            background-color: rgba(34, 158, 217, 0.12);
+            border: 1px solid rgba(34, 158, 217, 0.45);
+            color: #4fc3f7;
+            font-family: var(--font-ui);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 120ms ease;
+        }
+        .btn-telegram:hover {
+            background-color: rgba(34, 158, 217, 0.22);
+            color: #7dd3fc;
+        }
+        .btn-telegram svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+        /* Nhịp thông báo bản mới */
+        @keyframes updatePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5); }
+            50% { box-shadow: 0 0 0 4px rgba(251, 191, 36, 0); }
+        }
+        .app-version-chip.has-update {
+            animation: updatePulse 2s ease-in-out infinite;
+        }
+
+        /* Khối "Về ứng dụng / Cập nhật" trong Cài đặt */
+        .update-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .update-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.84rem;
+            line-height: 1.6;
+        }
+        .update-row .lbl {
+            color: #94a3b8;
+            min-width: 130px;
+            flex-shrink: 0;
+        }
+        .update-row .val {
+            color: #e2e8f0;
+            word-break: break-word;
+        }
+        .update-banner {
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            line-height: 1.55;
+            border: 1px solid;
+        }
+        .update-banner.ok {
+            background-color: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #86efac;
+        }
+        .update-banner.new {
+            background-color: rgba(251, 191, 36, 0.1);
+            border-color: rgba(251, 191, 36, 0.45);
+            color: #fcd34d;
+        }
+        .update-banner.err {
+            background-color: rgba(248, 113, 113, 0.1);
+            border-color: rgba(248, 113, 113, 0.4);
+            color: #fca5a5;
+        }
+        .update-banner code {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background-color: rgba(148, 163, 184, 0.15);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+        .update-commit-box {
+            background-color: rgba(148, 163, 184, 0.07);
+            border: 1px solid var(--border-crisp);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 0.82rem;
+        }
+        .update-commit-box .sha {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            color: #7dd3fc;
+        }
+        .update-commit-box .msg {
+            color: #e2e8f0;
+            margin: 6px 0;
+            line-height: 1.5;
+        }
+        .update-commit-box .date {
+            font-size: 0.76rem;
+            color: #94a3b8;
+        }
+        .update-release-body {
+            max-height: 260px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 0.79rem;
+            color: #cbd5e1;
+            background-color: rgba(148, 163, 184, 0.07);
+            border: 1px solid var(--border-crisp);
+            border-radius: 8px;
+            padding: 12px 14px;
+            line-height: 1.6;
+        }
+
+        .btn-update-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+            font-family: var(--font-ui);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 120ms ease;
+        }
+        .btn-update-check:hover:not(:disabled) {
+            background-color: var(--bg-pill-hover);
+            color: var(--text-white);
+            border-color: var(--border-hover);
+        }
+        .btn-update-check:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-update-check svg { width: 14px; height: 14px; }
+        .btn-update-check.spinning svg { animation: spinRefresh 900ms linear infinite; }
+        @keyframes spinRefresh { to { transform: rotate(360deg); } }
+
         .btn-icon-refresh {
             width: 32px;
             height: 32px;
@@ -755,6 +923,54 @@
         }
         .sync-target-item:hover {
             background-color: var(--bg-card-hover);
+        }
+        .sync-target-item.selected {
+            background-color: rgba(59, 130, 246, 0.15);
+            box-shadow: inset 2px 0 0 var(--neon-blue);
+        }
+        .sync-search-input {
+            width: 100%;
+            box-sizing: border-box;
+            font-family: var(--font-ui);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            border-radius: 6px;
+            padding: 7px 10px;
+        }
+        .sync-search-input:focus {
+            outline: none;
+            border-color: var(--border-active);
+        }
+        .sync-btn-back {
+            background-color: var(--bg-pill);
+            border: 1px solid var(--border-crisp);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 100ms ease;
+        }
+        .sync-btn-back:hover {
+            background-color: var(--bg-pill-hover);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+        .sync-src-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .sync-src-badge b {
+            color: var(--text-primary);
+            font-weight: 700;
         }
         .sync-target-item input[type="checkbox"] {
             accent-color: var(--neon-blue);
@@ -1351,6 +1567,16 @@
                             <span>+ Tạo Group</span>
                         </button>
                     </div>
+
+                    <!-- Phiên bản + báo bản mới + liên hệ Telegram (luôn hiển thị) -->
+                    <span class="app-version-chip" id="app-version-chip" title="Phiên bản hiện tại">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                        <span id="app-version-text">v—</span>
+                    </span>
+                    <a class="btn-telegram" id="btn-telegram-contact" href="https://t.me/Daukute" target="_blank" rel="noopener noreferrer" title="Liên hệ Telegram @Daukute">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.94 4.6l-3.02 14.25c-.23 1.01-.83 1.26-1.68.78l-4.64-3.42-2.24 2.16c-.25.25-.46.46-.94.46l.33-4.72 8.6-7.77c.37-.33-.08-.52-.58-.19L8.15 13.2l-4.56-1.43c-.99-.31-1.01-.99.21-1.47l17.8-6.86c.82-.31 1.55.19 1.28 1.16z"/></svg>
+                        <span>Liên Hệ Telegram</span>
+                    </a>
                 </div>
             </header>
 
@@ -1588,6 +1814,62 @@
             item.textContent = text;
             shelf.appendChild(item);
             setTimeout(() => item.remove(), 2800);
+        }
+
+        /* ================= Phiên bản & cập nhật ================= */
+        let appVersionInfo = null;   // dữ liệu từ /api/version
+        let updateInfoCache = null;  // dữ liệu từ /api/update/check
+
+        /* Tải thông tin phiên bản + liên hệ, và kiểm tra cập nhật (không chặn UI) */
+        async function initVersionInfo() {
+            try {
+                const res = await fetch('/api/version?t=' + Date.now());
+                const data = await res.json();
+                appVersionInfo = data;
+                const textEl = document.getElementById('app-version-text');
+                if (textEl) textEl.textContent = 'v' + (data.version || '—');
+                const link = document.getElementById('btn-telegram-contact');
+                if (link && data.telegram_url) link.href = data.telegram_url;
+            } catch (e) {
+                /* im lặng — không ảnh hưởng chức năng chính */
+            }
+            // Kiểm tra bản mới chạy nền (dùng cache 1h phía server, đỡ gọi GitHub liên tục)
+            checkUpdate(false).catch(() => {});
+        }
+
+        /* Gọi API kiểm tra cập nhật (force=true để bỏ cache phía server) */
+        async function checkUpdate(force) {
+            const res = await fetch('/api/update/check' + (force ? '?force=1' : ''));
+            const data = await res.json();
+            updateInfoCache = data;
+            renderVersionChip(data);
+            renderAboutUpdateResult(data); // cập nhật luôn section Cài đặt nếu đang mở
+            updateAboutBadge();
+            return data;
+        }
+
+        /* Cập nhật chip phiên bản ở góc phải topbar */
+        function renderVersionChip(info) {
+            const chip = document.getElementById('app-version-chip');
+            const textEl = document.getElementById('app-version-text');
+            if (!chip || !textEl) return;
+            const ver = (info && info.current_version) || (appVersionInfo && appVersionInfo.version) || '—';
+            textEl.textContent = 'v' + ver;
+
+            if (info && info.has_update) {
+                chip.classList.add('has-update');
+                const target = info.release_url || info.commit_url || info.repo_url || '';
+                chip.title = 'Có bản mới: v' + (info.latest_version || '?') + ' — bấm để xem trên GitHub';
+                chip.style.cursor = 'pointer';
+                chip.onclick = () => {
+                    if (target) window.open(target, '_blank', 'noopener');
+                };
+            } else {
+                chip.classList.remove('has-update');
+                chip.title = 'Phiên bản hiện tại: v' + ver;
+                chip.style.cursor = 'default';
+                chip.onclick = null;
+            }
         }
 
         function formatNet(bps) {
@@ -2553,6 +2835,10 @@
         let syncSelectedPath = '';      // đường dẫn file đã chọn (đồng bộ với ô nhập tay)
         let syncDestIds = new Set();    // tập id máy đích đã tick
         let syncOpenGroups = new Set(); // tập group đang xổ ra (mặc định thu gọn hết)
+        let syncSourceOpenGroups = new Set(); // group đang xổ ở khung chọn máy nguồn
+        let syncSourceQuery = '';       // từ khóa tìm kiếm máy nguồn
+        let syncDestQuery = '';         // từ khóa tìm kiếm máy đích
+        let syncDestPathEdited = false; // người dùng đã tự sửa ô đường dẫn đích
         let syncJobId = null;
         let syncPollTimer = null;
         let syncInspectResult = null;   // kết quả /api/sync/inspect gần nhất
@@ -2586,113 +2872,146 @@
         async function renderSyncView(area) {
             // Ngừng polling của job cũ khi render lại trang
             if (syncPollTimer) { clearInterval(syncPollTimer); syncPollTimer = null; }
+            syncAreaEl = area;
 
             if (!serverConfigs.length) {
                 area.innerHTML = `<div class="sync-fs-empty">Chưa có server nào. Hãy thêm server ở trang Quản lý Server trước.</div>`;
                 return;
             }
-            if (!syncSourceId || !serverConfigs.some(s => s.id === syncSourceId)) {
-                syncSourceId = serverConfigs[0].id;
+            if (syncSourceId && !serverConfigs.some(s => s.id === syncSourceId)) {
+                syncSourceId = ''; // không mặc định chọn máy nào — người dùng tự chọn
             }
+            syncStep = syncSourceId ? 2 : 1;
+            syncRenderStep();
+        }
 
-            area.innerHTML = `
-                <div class="sync-layout">
-                    <!-- CỘT TRÁI: chọn máy nguồn + duyệt file -->
-                    <div class="sync-panel">
-                        <div class="sync-panel-head">
-                            <h3>1. Máy nguồn &amp; file cần đồng bộ</h3>
-                        </div>
-                        <div class="sync-panel-body" style="padding-bottom: 8px;">
-                            <label class="field-label">Máy nguồn (chứa file)</label>
-                            <select class="modal-input" id="sync-source-select" onchange="syncOnSourceChange(this.value)">
-                                ${serverConfigs.map(s => {
-                                    const name = s.label ? `${s.label} — ${s.host}` : s.host;
-                                    return `<option value="${escapeHTML(s.id)}" ${s.id === syncSourceId ? 'selected' : ''}>${escapeHTML(name)}${syncIsOnline(s.id) ? '' : ' (offline)'}</option>`;
-                                }).join('')}
-                            </select>
-                        </div>
-                        <div class="sync-fs-toolbar">
-                            <button class="sync-btn-ghost" id="sync-fs-up" onclick="syncBrowseUp()" title="Lên 1 cấp">↑ Lên</button>
-                            <button class="sync-btn-ghost" id="sync-fs-home" onclick="syncBrowseTo('')" title="Về thư mục home">⌂ Home</button>
-                            <button class="sync-btn-ghost" id="sync-fs-reload" onclick="syncReload()" title="Tải lại">⟳</button>
-                            <input class="sync-fs-path" id="sync-fs-path" value="${escapeHTML(syncBrowsePath)}" placeholder="~ (home) — gõ đường dẫn rồi Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();syncBrowseTo(this.value.trim());}" title="Gõ đường dẫn tuyệt đối rồi nhấn Enter để tới nhanh">
-                        </div>
-                        <div class="sync-fs-list" id="sync-fs-list">
-                            <div class="sync-fs-empty">Đang tải…</div>
-                        </div>
-                        <div class="sync-panel-body" style="border-top: 1px solid var(--border-crisp);">
-                            <label class="field-label">Đường dẫn file nguồn (có thể dán trực tiếp)</label>
-                            <input class="modal-input sync-mono" id="sync-source-path" value="${escapeHTML(syncSelectedPath)}" placeholder="/root/example.conf" oninput="syncOnPathInput(this.value)">
-                            <div class="sync-note" style="margin-top: 6px;">Chọn file ở khung trên hoặc dán đường dẫn tuyệt đối vào đây — hai bên luôn khớp nhau.</div>
-                        </div>
+        let syncAreaEl = null;
+        let syncStep = 1;
+
+        /* Render theo bước: 1 = chọn máy nguồn, 2 = chọn file + máy đích */
+        function syncRenderStep() {
+            const area = syncAreaEl;
+            if (!area) return;
+
+            const srcServer = serverConfigs.find(s => s.id === syncSourceId);
+
+            let leftHead, leftBody, rightCol = '', actions = '';
+
+            if (syncStep === 1 || !srcServer) {
+                /* ---- BƯỚC 1: chọn máy nguồn (chỉ hiện khung chọn, ẩn hết phần dưới) ---- */
+                leftHead = `<h3>Bước 1 — Chọn máy nguồn</h3>`;
+                leftBody = `
+                    <div class="sync-panel-body" style="padding-bottom: 8px;">
+                        <label class="field-label">Máy nguồn (chứa file)</label>
+                        <input class="sync-search-input" id="sync-source-search" placeholder="🔍 Tìm VPS nguồn (tên, IP, group)…" value="${escapeHTML(syncSourceQuery)}" oninput="syncOnSourceSearch(this.value)">
+                        <div id="sync-source-groups" style="margin-top: 8px;"></div>
+                    </div>`;
+            } else {
+                /* ---- BƯỚC 2: duyệt & chọn file trên máy nguồn ---- */
+                const srcName = srcServer.label ? `${srcServer.label} — ${srcServer.host}` : srcServer.host;
+                leftHead = `
+                    <button class="sync-btn-back" onclick="syncBackToSource()" title="Quay lại bước chọn máy nguồn">←</button>
+                    <h3>Bước 2 — Chọn file cần đồng bộ</h3>
+                    <span class="sync-src-badge"><span class="node-dot ${syncIsOnline(srcServer.id) ? '' : 'offline'}" id="sync-src-dot-${escapeHTML(srcServer.id)}"></span><b>${escapeHTML(srcName)}</b></span>`;
+                leftBody = `
+                    <div class="sync-fs-toolbar">
+                        <button class="sync-btn-ghost" id="sync-fs-up" onclick="syncBrowseUp()" title="Về thư mục cha (cấp trên)">↑ Thư mục cha</button>
+                        <button class="sync-btn-ghost" id="sync-fs-home" onclick="syncBrowseTo('')" title="Về thư mục home">⌂ Home</button>
+                        <button class="sync-btn-ghost" id="sync-fs-reload" onclick="syncReload()" title="Tải lại">⟳</button>
+                        <input class="sync-fs-path" id="sync-fs-path" value="${escapeHTML(syncSelectedPath || syncBrowsePath)}" placeholder="~ (home) — dán đường dẫn file/thư mục rồi Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();syncBrowseTo(this.value.trim());}" title="Bấm chọn file bên dưới, hoặc dán đường dẫn file/thư mục rồi nhấn Enter">
                     </div>
+                    <div class="sync-fs-list" id="sync-fs-list">
+                        <div class="sync-fs-empty">Đang tải…</div>
+                    </div>`;
 
+                rightCol = `
                     <!-- CỘT PHẢI: chọn máy đích -->
                     <div class="sync-panel">
                         <div class="sync-panel-head">
-                            <h3>2. Máy đích nhận file</h3>
+                            <h3>3. Máy đích nhận file</h3>
                         </div>
                         <div class="sync-panel-body" style="padding-bottom: 8px;">
-                            <label class="field-label">Đường dẫn đích (để trống = dùng đường dẫn nguồn)</label>
-                            <input class="modal-input sync-mono" id="sync-dest-path" placeholder="Mặc định: giống đường dẫn nguồn">
+                            <label class="field-label">Đường dẫn đích (tự điền theo file nguồn, có thể sửa)</label>
+                            <input class="modal-input sync-mono" id="sync-dest-path" value="${escapeHTML(syncSelectedPath)}" placeholder="Giống đường dẫn nguồn" oninput="syncDestPathEdited = true">
                             <div class="sync-note" style="margin-top: 6px;">File đã tồn tại ở đích sẽ bị <b>ghi đè</b>.</div>
                         </div>
                         <div class="sync-panel-body" style="padding-top: 6px;">
+                            <input class="sync-search-input" id="sync-dest-search" placeholder="🔍 Tìm VPS đích (tên, IP, group)…" value="${escapeHTML(syncDestQuery)}" oninput="syncOnDestSearch(this.value)" style="margin-bottom: 8px;">
                             <div id="sync-dest-groups"></div>
                         </div>
-                    </div>
-                </div>
+                    </div>`;
 
-                <!-- KHU VỰC KIỂM TRA & ĐỒNG BỘ -->
-                <div class="sync-preflight" id="sync-preflight"></div>
-                <div class="sync-actions-bar">
-                    <button class="sync-btn-primary" id="sync-btn-inspect" onclick="syncRunInspect()">Kiểm tra trước khi đồng bộ</button>
-                    <button class="sync-btn-primary" id="sync-btn-start" onclick="syncConfirmStart()" disabled style="display:none;">Bắt đầu đồng bộ</button>
-                    <button class="sync-btn-primary sync-btn-danger" id="sync-btn-cancel" onclick="syncCancelJob()" disabled style="display:none;">Hủy</button>
-                    <span class="sync-note" id="sync-action-hint"></span>
+                actions = `
+                    <!-- KHU VỰC KIỂM TRA & ĐỒNG BỘ -->
+                    <div class="sync-preflight" id="sync-preflight"></div>
+                    <div class="sync-actions-bar">
+                        <button class="sync-btn-primary" id="sync-btn-inspect" onclick="syncRunInspect()">Kiểm tra trước khi đồng bộ</button>
+                        <button class="sync-btn-primary" id="sync-btn-start" onclick="syncConfirmStart()" disabled style="display:none;">Bắt đầu đồng bộ</button>
+                        <button class="sync-btn-primary sync-btn-danger" id="sync-btn-cancel" onclick="syncCancelJob()" disabled style="display:none;">Hủy</button>
+                        <span class="sync-note" id="sync-action-hint"></span>
+                    </div>`;
+            }
+
+            area.innerHTML = `
+                <div class="sync-layout" ${srcServer && syncStep === 2 ? '' : 'style="grid-template-columns: 1fr;"'}>
+                    <div class="sync-panel">
+                        <div class="sync-panel-head" style="display:flex;align-items:center;gap:10px;">
+                            ${leftHead}
+                        </div>
+                        ${leftBody}
+                    </div>
+                    ${rightCol}
                 </div>
+                ${actions}
             `;
 
-            syncRenderDestGroups();
-            syncLoadDir(syncBrowsePath);
+            if (syncStep === 1 || !srcServer) {
+                syncRenderSourceGroups();
+            } else {
+                syncRenderDestGroups();
+                syncLoadDir(syncBrowsePath);
 
-            // Event delegation cho danh sách file: đọc data-path qua dataset
-            // (đã được browser giải mã) nên an toàn với mọi ký tự trong tên file.
-            const fsList = document.getElementById('sync-fs-list');
-            if (fsList && !fsList.dataset.bound) {
-                fsList.dataset.bound = '1';
-                fsList.addEventListener('click', (ev) => {
-                    const item = ev.target.closest('.sync-fs-item');
-                    if (!item || !fsList.contains(item)) return;
-                    const p = item.dataset.path;
-                    if (p === undefined) return;
-                    if (item.dataset.dir === '1') syncLoadDir(p);
-                    else syncPickFile(p);
-                });
+                // Event delegation cho danh sách file: đọc data-path qua dataset
+                // (đã được browser giải mã) nên an toàn với mọi ký tự trong tên file.
+                const fsList = document.getElementById('sync-fs-list');
+                if (fsList && !fsList.dataset.bound) {
+                    fsList.dataset.bound = '1';
+                    fsList.addEventListener('click', (ev) => {
+                        const item = ev.target.closest('.sync-fs-item');
+                        if (!item || !fsList.contains(item)) return;
+                        const p = item.dataset.path;
+                        if (p === undefined) return;
+                        if (item.dataset.dir === '1') syncLoadDir(p);
+                        else syncPickFile(p);
+                    });
+                }
             }
         }
 
-        /* ---- Cột trái: duyệt file ---- */
-        window.syncOnSourceChange = function(id) {
-            syncSourceId = id;
-            syncSelectedPath = '';
-            syncBrowsePath = '';
-            syncInspectResult = null;
-            const inp = document.getElementById('sync-source-path');
-            if (inp) inp.value = '';
+        /* Quay lại bước 1 — giữ nguyên máy đã chọn để highlight */
+        window.syncBackToSource = function() {
+            syncStep = 1;
             syncResetActions();
-            syncLoadDir('');
+            syncRenderStep();
         };
 
-        window.syncOnPathInput = function(val) {
-            syncSelectedPath = val.trim();
+        /* ---- Cột trái: duyệt file ---- */
+        /* Chọn file / cập nhật đường dẫn đã chọn + đồng bộ ô path và ô đích */
+        function syncSetSelectedFile(fullPath) {
+            syncSelectedPath = fullPath;
             syncInspectResult = null;
             syncResetActions();
-            // Highlight file khớp trong danh sách đang duyệt (nếu có)
+            const pathBar = document.getElementById('sync-fs-path');
+            if (pathBar) { pathBar.value = syncSelectedPath || syncBrowsePath; pathBar.title = syncSelectedPath || syncBrowsePath; }
             document.querySelectorAll('.sync-fs-item[data-path]').forEach(el => {
                 el.classList.toggle('selected', el.dataset.path === syncSelectedPath);
             });
-        };
+            // Tự điền đường dẫn đích theo file nguồn (nếu người dùng chưa sửa tay)
+            if (!syncDestPathEdited) {
+                const destInp = document.getElementById('sync-dest-path');
+                if (destInp) destInp.value = syncSelectedPath;
+            }
+        }
 
         window.syncBrowseTo = function(path) {
             syncLoadDir(path);
@@ -2726,9 +3045,15 @@
                 if (!res.ok) throw new Error(data.error || 'Không liệt kê được thư mục');
 
                 syncBrowsePath = data.path || '';
-                const pathBar = document.getElementById('sync-fs-path');
-                if (pathBar) { pathBar.value = syncBrowsePath; pathBar.title = syncBrowsePath; }
                 if (upBtn) upBtn.disabled = !(syncBrowsePath && syncBrowsePath !== '/');
+
+                // Dán đường dẫn FILE vào ô path → tự chọn file đó, bảng dưới vẫn duyệt thư mục chứa nó
+                if (data.is_file && data.file_path) {
+                    syncSetSelectedFile(data.file_path);
+                } else {
+                    const pathBar = document.getElementById('sync-fs-path');
+                    if (pathBar) { pathBar.value = syncBrowsePath; pathBar.title = syncBrowsePath; }
+                }
 
                 const entries = (data.entries || []).slice().sort((a, b) => {
                     if (a.is_dir !== b.is_dir) return a.is_dir ? -1 : 1;
@@ -2765,27 +3090,108 @@
         window.syncPickFile = function(fullPath) {
             // Bấm lại file đang chọn → bỏ chọn
             const deselected = syncSelectedPath === fullPath;
-            syncSelectedPath = deselected ? '' : fullPath;
-            syncInspectResult = null;
-            syncResetActions();
-            const inp = document.getElementById('sync-source-path');
-            if (inp) inp.value = syncSelectedPath;
-            document.querySelectorAll('.sync-fs-item[data-path]').forEach(el => {
-                el.classList.toggle('selected', !deselected && el.dataset.path === fullPath);
-            });
+            syncSetSelectedFile(deselected ? '' : fullPath);
         };
 
         /* ---- Cột phải: chọn máy đích (group thu gọn mặc định) ---- */
+        /* Lọc server theo từ khóa (tên, host, group) */
+        function syncMatchQuery(s, q) {
+            if (!q) return true;
+            q = q.toLowerCase();
+            return (s.label || '').toLowerCase().includes(q)
+                || (s.host || '').toLowerCase().includes(q)
+                || (s.group || 'Default').toLowerCase().includes(q);
+        }
+
+        /* Khung chọn máy nguồn — nhóm theo group, chọn 1 máy (không mặc định) */
+        function syncRenderSourceGroups() {
+            const wrap = document.getElementById('sync-source-groups');
+            if (!wrap) return;
+            const q = syncSourceQuery.trim();
+
+            // Khi có từ khóa: hiện danh sách phẳng các máy khớp để dễ chọn nhanh
+            if (q) {
+                const matches = serverConfigs.filter(s => syncMatchQuery(s, q));
+                if (!matches.length) {
+                    wrap.innerHTML = `<div class="sync-fs-empty" style="padding:12px;">Không tìm thấy VPS khớp</div>`;
+                    return;
+                }
+                wrap.innerHTML = `<div class="sync-targets-scroll" style="border:1px solid var(--border-crisp);border-radius:8px;">
+                    ${matches.map(s => syncSourceItemHTML(s, true)).join('')}
+                </div>`;
+                return;
+            }
+
+            const grouped = syncGroupedServers();
+            wrap.innerHTML = grouped.map(({ group, servers }) => {
+                const open = syncSourceOpenGroups.has(group);
+                return `<div class="sync-group-block">
+                    <div class="sync-group-head clickable" onclick="syncToggleSourceGroupOpen('${escapeHTML(group)}')" title="Bấm để thu gọn / xổ danh sách máy">
+                        <svg class="grp-caret ${open ? 'open' : ''}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                        <span class="grp-name">${escapeHTML(group)}</span>
+                        <span class="grp-count">${servers.length} máy</span>
+                    </div>
+                    <div class="sync-targets-scroll" ${open ? '' : 'hidden'}>
+                        ${servers.map(s => syncSourceItemHTML(s, false)).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function syncSourceItemHTML(s, showGroup) {
+            const online = syncIsOnline(s.id);
+            const selected = s.id === syncSourceId;
+            return `<div class="sync-target-item ${selected ? 'selected' : ''}" data-src-id="${escapeHTML(s.id)}" onclick="syncPickSource('${escapeHTML(s.id)}')" title="Chọn làm máy nguồn">
+                <span class="node-dot ${online ? '' : 'offline'}" id="sync-src-dot-${escapeHTML(s.id)}"></span>
+                <span class="tgt-label">${escapeHTML(s.label || s.id)}${showGroup && s.group ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(${escapeHTML(s.group)})</span>` : ''}</span>
+                <span class="tgt-host">${escapeHTML(s.host)}</span>
+            </div>`;
+        }
+
+        window.syncToggleSourceGroupOpen = function(group) {
+            if (syncSourceOpenGroups.has(group)) syncSourceOpenGroups.delete(group);
+            else syncSourceOpenGroups.add(group);
+            syncRenderSourceGroups();
+        };
+
+        window.syncPickSource = function(id) {
+            const changed = syncSourceId !== id;
+            syncSourceId = id;
+            if (changed) {
+                syncSelectedPath = '';
+                syncBrowsePath = '';
+                syncDestPathEdited = false;
+                syncInspectResult = null;
+            }
+            // Sang bước 2: chọn file + máy đích
+            syncStep = 2;
+            syncResetActions();
+            syncRenderStep();
+        };
+
+        window.syncOnSourceSearch = function(val) {
+            syncSourceQuery = val;
+            syncRenderSourceGroups();
+        };
+
+        window.syncOnDestSearch = function(val) {
+            syncDestQuery = val;
+            syncRenderDestGroups();
+        };
+
         function syncRenderDestGroups() {
             const wrap = document.getElementById('sync-dest-groups');
             if (!wrap) return;
+            const q = syncDestQuery.trim();
             const grouped = syncGroupedServers();
 
             wrap.innerHTML = grouped.map(({ group, servers }) => {
-                const candidates = servers.filter(s => s.id !== syncSourceId);
+                let candidates = servers.filter(s => s.id !== syncSourceId);
+                if (q) candidates = candidates.filter(s => syncMatchQuery(s, q));
+                if (q && !candidates.length) return ''; // ẩn group không có máy khớp
                 const checkedCount = candidates.filter(s => syncDestIds.has(s.id)).length;
                 const allChecked = candidates.length > 0 && checkedCount === candidates.length;
-                const open = syncOpenGroups.has(group);
+                const open = q ? true : syncOpenGroups.has(group); // khi tìm kiếm: tự xổ group khớp
                 return `<div class="sync-group-block">
                     <div class="sync-group-head ${candidates.length ? 'clickable' : ''}" onclick="syncToggleGroupOpen('${escapeHTML(group)}')" title="Bấm để thu gọn / xổ danh sách máy">
                         <svg class="grp-caret ${open ? 'open' : ''}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
@@ -2807,6 +3213,9 @@
                     </div>
                 </div>`;
             }).join('');
+            if (q && !wrap.innerHTML.trim()) {
+                wrap.innerHTML = `<div class="sync-fs-empty" style="padding:12px;">Không tìm thấy VPS khớp</div>`;
+            }
         }
 
         window.syncToggleGroupOpen = function(group) {
@@ -2823,8 +3232,9 @@
         };
 
         window.syncToggleGroup = function(group, checked) {
+            const q = syncDestQuery.trim();
             serverConfigs.forEach(s => {
-                if ((s.group || 'Default') === group && s.id !== syncSourceId) {
+                if ((s.group || 'Default') === group && s.id !== syncSourceId && syncMatchQuery(s, q)) {
                     if (checked) syncDestIds.add(s.id); else syncDestIds.delete(s.id);
                 }
             });
@@ -2841,17 +3251,10 @@
             serverConfigs.forEach(s => {
                 const dot = document.getElementById(`sync-dot-${s.id}`);
                 if (dot) dot.className = `node-dot ${syncIsOnline(s.id) ? '' : 'offline'}`;
+                // Máy nguồn (khung chọn theo group)
+                const srcDot = document.getElementById(`sync-src-dot-${s.id}`);
+                if (srcDot) srcDot.className = `node-dot ${syncIsOnline(s.id) ? '' : 'offline'}`;
             });
-            // Máy nguồn: dropdown — cập nhật hậu tố "(offline)"
-            const sel = document.getElementById('sync-source-select');
-            if (sel) {
-                Array.from(sel.options).forEach(opt => {
-                    const s = serverConfigs.find(x => x.id === opt.value);
-                    if (!s) return;
-                    const name = s.label ? `${s.label} — ${s.host}` : s.host;
-                    opt.textContent = name + (syncIsOnline(s.id) ? '' : ' (offline)');
-                });
-            }
         }
 
         /* ---- Reset khu vực action khi lựa chọn thay đổi ---- */
@@ -2871,11 +3274,13 @@
 
         /* ---- Bước 2: kiểm tra trước khi đồng bộ ---- */
         window.syncRunInspect = async function() {
-            const srcPath = (document.getElementById('sync-source-path')?.value || '').trim();
+            if (!syncSourceId) { showToast('Chưa chọn máy nguồn'); return; }
+            const srcPath = (syncSelectedPath || '').trim();
             if (!srcPath) { showToast('Chưa chọn file nguồn'); return; }
             if (syncDestIds.size === 0) { showToast('Chưa chọn máy đích nào'); return; }
 
-            const destPath = (document.getElementById('sync-dest-path')?.value || '').trim();
+            const destInput = (document.getElementById('sync-dest-path')?.value || '').trim();
+            const destPath = destInput || srcPath; // để trống = dùng đường dẫn nguồn
             const inspectBtn = document.getElementById('sync-btn-inspect');
             if (inspectBtn) { inspectBtn.disabled = true; inspectBtn.textContent = 'Đang kiểm tra…'; }
 
@@ -3001,7 +3406,7 @@
             const data = syncInspectResult;
             if (!data) return;
             const validIds = (data.targets || []).filter(t => t.ok && !t.same).map(t => t.id);
-            const destPath = (document.getElementById('sync-dest-path')?.value || '').trim();
+            const destPath = (document.getElementById('sync-dest-path')?.value || '').trim() || data.source_path;
 
             const startBtn = document.getElementById('sync-btn-start');
             const cancelBtn = document.getElementById('sync-btn-cancel');
@@ -3132,6 +3537,8 @@
                 if (s.proxy_id) proxyUsage[s.proxy_id] = (proxyUsage[s.proxy_id] || 0) + 1;
             });
 
+            const aboutSection = renderAboutSection();
+
             let proxyRows = '';
             if (proxyList.length === 0) {
                 proxyRows = `<tr><td colspan="5" style="text-align: center; padding: 28px; color: #94a3b8;">Chưa có proxy nào. Bấm <strong style="color:#e2e8f0;">+ Thêm Proxy</strong> để tạo — dùng khi server chỉ cho phép SSH từ một số IP nhất định.</td></tr>`;
@@ -3167,6 +3574,11 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                             <span>Proxy</span>
                             <span class="count-badge" style="margin-left: auto;">${proxyList.length}</span>
+                        </button>
+                        <button class="settings-nav-item" data-section="about" onclick="switchSettingsSection('about')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span>Về ứng dụng</span>
+                            <span class="count-badge" id="about-update-badge" style="margin-left: auto; display: none;">!</span>
                         </button>
                     </nav>
 
@@ -3224,12 +3636,168 @@
                                 💡 Gán proxy cho từng server trong modal <strong style="color:#e2e8f0;">Thêm/Sửa Server</strong> → ô "Proxy kết nối". Server không gán proxy sẽ kết nối trực tiếp. Xóa proxy sẽ tự gỡ khỏi các server đang dùng (về kết nối trực tiếp).
                             </div>
                         </section>
+
+                        <section data-section="about" hidden>
+                            ${aboutSection}
+                        </section>
                     </div>
                 </div>
             `;
 
             // Giữ nguyên section đang xem sau mỗi lần re-render
             switchSettingsSection(activeSettingsSection);
+            updateAboutBadge();
+        }
+
+        /* ============================================================
+           VỀ ỨNG DỤNG / KIỂM TRA CẬP NHẬT
+           ============================================================ */
+
+        /* Nội dung section "Về ứng dụng" trong Cài đặt */
+        function renderAboutSection() {
+            const ver = (appVersionInfo && appVersionInfo.version) || '—';
+            const repoUrl = (appVersionInfo && appVersionInfo.repo_url) || 'https://github.com/DauDau432/SSH_Monitor';
+            const tgUrl = (appVersionInfo && appVersionInfo.telegram_url) || 'https://t.me/Daukute';
+            const tgUser = (appVersionInfo && appVersionInfo.telegram) || 'Daukute';
+
+            return `
+                <div class="table-title-bar">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #94a3b8;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span>Về Ứng Dụng &amp; Cập Nhật</span>
+                    </h3>
+                    <button class="btn-update-check" id="btn-update-check" onclick="checkUpdateFromSettings()" title="Kiểm tra bản phát hành / commit mới trên GitHub">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        <span id="btn-update-check-text">Kiểm tra cập nhật</span>
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <div style="padding: 24px;">
+                        <div class="update-panel">
+                            <div class="update-row">
+                                <span class="lbl">Phiên bản hiện tại</span>
+                                <span class="val"><code>v${escapeHTML(ver)}</code></span>
+                            </div>
+                            <div class="update-row">
+                                <span class="lbl">Kho mã nguồn</span>
+                                <span class="val">
+                                    <a href="${escapeHTML(repoUrl)}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;text-decoration:none;">${escapeHTML(repoUrl)}</a>
+                                </span>
+                            </div>
+                            <div class="update-row">
+                                <span class="lbl">Liên hệ Telegram</span>
+                                <span class="val">
+                                    <a href="${escapeHTML(tgUrl)}" target="_blank" rel="noopener noreferrer" style="color:#4fc3f7;text-decoration:none;">@${escapeHTML(tgUser)}</a>
+                                </span>
+                            </div>
+                            <div id="about-update-result">
+                                <div class="update-banner ok" style="opacity:0.75;">Chưa kiểm tra. Bấm <b>Kiểm tra cập nhật</b> để xem bản phát hành / commit mới nhất trên GitHub.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* Vẽ chi tiết kết quả kiểm tra cập nhật vào section "Về ứng dụng" */
+        function renderAboutUpdateResult(info) {
+            const box = document.getElementById('about-update-result');
+            if (!box || !info) return;
+
+            if (info.error) {
+                box.innerHTML = `<div class="update-banner err">⚠️ Không kiểm tra được: ${escapeHTML(info.error)}<br>Hãy chắc chắn máy chủ có Internet rồi thử lại.</div>`;
+                return;
+            }
+
+            const hasRel = !!(info.release_url || info.release_name);
+            const hasCommit = !!info.commit_sha;
+
+            let html = '';
+            if (info.has_update) {
+                html += `<div class="update-banner new">
+                    🔔 <b>Có bản mới!</b> Bản hiện tại <code>v${escapeHTML(info.current_version || '')}</code>${info.latest_version && info.latest_version !== info.current_version ? ` — bản phát hành mới nhất <code>v${escapeHTML(info.latest_version)}</code>` : ''}
+                    ${info.checked_at ? `<div style="margin-top:6px;font-size:.76rem;opacity:.85;">Kiểm tra lúc: ${escapeHTML(formatDateTime(info.checked_at))}</div>` : ''}
+                </div>`;
+            } else {
+                html += `<div class="update-banner ok">
+                    ✅ Bạn đang dùng bản mới nhất (không có bản phát hành/commit nào mới hơn).
+                    ${info.checked_at ? `<div style="margin-top:6px;font-size:.76rem;opacity:.85;">Kiểm tra lúc: ${escapeHTML(formatDateTime(info.checked_at))}</div>` : ''}
+                </div>`;
+            }
+
+            if (hasRel) {
+                html += `<div style="margin-top:16px;">
+                    <div class="update-row">
+                        <span class="lbl">Bản phát hành</span>
+                        <span class="val">
+                            ${escapeHTML(info.release_name || info.latest_version || '—')}
+                            ${info.published_at ? `<span style="color:#94a3b8;font-size:.76rem;"> · ${escapeHTML(formatDateTime(info.published_at))}</span>` : ''}
+                        </span>
+                    </div>
+                    ${info.release_url ? `<div class="update-row">
+                        <span class="lbl"></span>
+                        <span class="val"><a href="${escapeHTML(info.release_url)}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;text-decoration:none;">→ Xem bản phát hành trên GitHub</a></span>
+                    </div>` : ''}
+                    ${info.release_body ? `<div class="update-release-body">${escapeHTML(info.release_body)}</div>` : ''}
+                </div>`;
+            }
+
+            if (hasCommit) {
+                html += `<div style="margin-top:16px;">
+                    <div class="update-row"><span class="lbl">Commit mới nhất</span><span class="val">trên nhánh <code>main</code></span></div>
+                    <div class="update-commit-box">
+                        <div class="sha">${escapeHTML((info.commit_sha || '').slice(0, 10))}</div>
+                        <div class="msg">${escapeHTML(info.commit_message || '(không có tiêu đề)')}</div>
+                        <div class="date">${info.commit_date ? escapeHTML(formatDateTime(info.commit_date)) : ''}</div>
+                        ${info.commit_url ? `<div style="margin-top:8px;"><a href="${escapeHTML(info.commit_url)}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;text-decoration:none;font-size:.78rem;">→ Xem commit trên GitHub</a></div>` : ''}
+                    </div>
+                </div>`;
+            }
+
+            if (!hasRel && !hasCommit) {
+                html += `<div style="margin-top:16px;font-size:.8rem;color:#94a3b8;">Không tìm thấy bản phát hành hay commit nào trên repo.</div>`;
+            }
+
+            box.innerHTML = html;
+        }
+
+        /* Định dạng thời gian ISO → chuỗi dễ đọc (dd/mm/yyyy hh:mm) */
+        function formatDateTime(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            const p = (n) => String(n).padStart(2, '0');
+            return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+        }
+
+        /* Bấm nút "Kiểm tra cập nhật" trong Cài đặt (bỏ cache phía server) */
+        window.checkUpdateFromSettings = async function() {
+            const btn = document.getElementById('btn-update-check');
+            const txt = document.getElementById('btn-update-check-text');
+            if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
+            if (txt) txt.textContent = 'Đang kiểm tra…';
+            try {
+                const info = await checkUpdate(true);
+                renderAboutUpdateResult(info);
+                updateAboutBadge();
+                if (info && info.error) showToast('Không kiểm tra được cập nhật');
+                else if (info && info.has_update) showToast('Có bản mới: v' + (info.latest_version || '?'));
+                else showToast('Bạn đang dùng bản mới nhất');
+            } catch (err) {
+                const box = document.getElementById('about-update-result');
+                if (box) box.innerHTML = `<div class="update-banner err">⚠️ ${escapeHTML(err.message)}</div>`;
+            } finally {
+                if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
+                if (txt) txt.textContent = 'Kiểm tra cập nhật';
+            }
+        };
+
+        /* Hiện/ẩn dấu "!" trên menu "Về ứng dụng" khi có bản mới */
+        function updateAboutBadge() {
+            const badge = document.getElementById('about-update-badge');
+            if (!badge) return;
+            badge.style.display = (updateInfoCache && updateInfoCache.has_update) ? '' : 'none';
         }
 
         let activeSettingsSection = localStorage.getItem('wb_settings_section') || 'general';
@@ -3542,11 +4110,11 @@
                 document.getElementById('inp-srv-pass').value = '';
                 document.getElementById('inp-srv-key').value = '';
                 document.getElementById('inp-srv-proxy').value = '';
-                if (selectedCluster !== 'all' && systemGroups.includes(selectedCluster)) {
-                    document.getElementById('inp-srv-group').value = selectedCluster;
-                } else {
-                    document.getElementById('inp-srv-group').value = 'Default';
-                }
+                // Tự chọn group đang đứng (thanh lọc group hoặc dropdown cụm)
+                const activeGroup = (currentGroupFilter !== 'all' && systemGroups.includes(currentGroupFilter))
+                    ? currentGroupFilter
+                    : (selectedCluster !== 'all' && systemGroups.includes(selectedCluster) ? selectedCluster : 'Default');
+                document.getElementById('inp-srv-group').value = activeGroup;
             }
             setPasswordVisible(false);
             document.getElementById('modal-server').classList.add('active');
@@ -3730,6 +4298,9 @@
             connectWebSocket();
             switchViewTab(currentView, true);
         });
+
+        // Nạp phiên bản + kiểm tra cập nhật (chạy nền, không chặn UI)
+        initVersionInfo();
 
     })();
     </script>
