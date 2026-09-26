@@ -1741,8 +1741,9 @@ func main() {
 	// Start server
 	fmt.Println()
 	fmt.Println("╔══════════════════════════════════════════════════╗")
-	fmt.Printf("║  %-48s║\n", "SSH Monitor — VPS Dashboard")
+	fmt.Printf("║  %-48s║\n", "SSH Monitor v"+AppVersion)
 	fmt.Printf("║  %-48s║\n", "URL: http://localhost"+ServerPort)
+	fmt.Printf("║  %-48s║\n", "Repo: "+repoURL())
 	fmt.Printf("║  %-48s║\n", "Config: "+filepath.Base(configPath))
 	fmt.Printf("║  %-48s║\n", fmt.Sprintf("Monitoring: %d servers", len(app.config.Servers)))
 	fmt.Printf("║  %-48s║\n", "Press Ctrl+C to stop")

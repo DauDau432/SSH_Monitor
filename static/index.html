@@ -484,6 +484,45 @@
             padding: 12px 14px;
             line-height: 1.6;
         }
+        /* Markdown đã render: bỏ pre-wrap, định dạng lại các thẻ */
+        .update-release-body.md,
+        .update-commit-box .msg.md {
+            white-space: normal;
+        }
+        .md h1, .md h2, .md h3 {
+            color: #e2e8f0;
+            margin: 10px 0 6px;
+            font-size: 0.88rem;
+        }
+        .md h1:first-child, .md h2:first-child, .md h3:first-child { margin-top: 0; }
+        .md p { margin: 4px 0; }
+        .md ul, .md ol { margin: 4px 0; padding-left: 20px; }
+        .md li { margin: 2px 0; }
+        .md a { color: #7dd3fc; text-decoration: none; }
+        .md a:hover { text-decoration: underline; }
+        .md code {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            background-color: rgba(148, 163, 184, 0.15);
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+        .md pre {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-crisp);
+            border-radius: 6px;
+            padding: 8px 10px;
+            overflow-x: auto;
+            margin: 6px 0;
+        }
+        .md pre code { background: none; padding: 0; }
+        .md blockquote {
+            border-left: 2px solid var(--border-hover);
+            margin: 6px 0;
+            padding: 2px 10px;
+            color: #94a3b8;
+        }
+        .md hr { border: none; border-top: 1px solid var(--border-crisp); margin: 8px 0; }
 
         .btn-update-check {
             display: inline-flex;
@@ -1456,6 +1495,7 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.6);
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 
@@ -3739,7 +3779,7 @@
                         <span class="lbl"></span>
                         <span class="val"><a href="${escapeHTML(info.release_url)}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;text-decoration:none;">→ Xem bản phát hành trên GitHub</a></span>
                     </div>` : ''}
-                    ${info.release_body ? `<div class="update-release-body">${escapeHTML(info.release_body)}</div>` : ''}
+                    ${info.release_body ? `<div class="update-release-body md">${renderMarkdown(info.release_body)}</div>` : ''}
                 </div>`;
             }
 
@@ -3748,7 +3788,7 @@
                     <div class="update-row"><span class="lbl">Commit mới nhất</span><span class="val">trên nhánh <code>main</code></span></div>
                     <div class="update-commit-box">
                         <div class="sha">${escapeHTML((info.commit_sha || '').slice(0, 10))}</div>
-                        <div class="msg">${escapeHTML(info.commit_message || '(không có tiêu đề)')}</div>
+                        <div class="msg md">${renderMarkdown(info.commit_message || '(không có tiêu đề)')}</div>
                         <div class="date">${info.commit_date ? escapeHTML(formatDateTime(info.commit_date)) : ''}</div>
                         ${info.commit_url ? `<div style="margin-top:8px;"><a href="${escapeHTML(info.commit_url)}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;text-decoration:none;font-size:.78rem;">→ Xem commit trên GitHub</a></div>` : ''}
                     </div>
@@ -3760,6 +3800,19 @@
             }
 
             box.innerHTML = html;
+        }
+
+        /* Render Markdown an toàn: escape HTML trước rồi mới parse
+           (chỉ cho phép định dạng Markdown, không chạy HTML thô).
+           Nếu CDN marked chưa tải được thì trả về text đã escape. */
+        function renderMarkdown(text) {
+            const escaped = escapeHTML(text || '');
+            if (typeof marked === 'undefined' || !marked.parse) return escaped.replace(/\n/g, '<br>');
+            try {
+                return marked.parse(escaped, { breaks: true, gfm: true });
+            } catch (e) {
+                return escaped.replace(/\n/g, '<br>');
+            }
         }
 
         /* Định dạng thời gian ISO → chuỗi dễ đọc (dd/mm/yyyy hh:mm) */
