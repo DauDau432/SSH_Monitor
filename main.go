@@ -12,12 +12,16 @@ import (
 	"io/fs"
 	"log"
 	"math"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,12 +46,54 @@ const (
 	ReconnectDelay    = 10 * time.Second // Delay giữa các lần reconnect
 	WSPingInterval    = 30 * time.Second // Ping WebSocket clients
 	WSWriteTimeout    = 5 * time.Second  // Timeout ghi WebSocket
-	ServerPort        = ":8080"
+	ServerPort        = ":8888"
 	ConfigFileName    = "servers.json"
 )
 
-// Lệnh SSH gộp — lấy toàn bộ metrics trong 1 lần gọi
-const metricsCommand = `head -1 /proc/stat; echo '---DELIM---'; grep -E '^(MemTotal|MemFree|MemAvailable|Buffers|Cached):' /proc/meminfo; echo '---DELIM---'; df -h / | tail -1; echo '---DELIM---'; cat /proc/net/dev; echo '---DELIM---'; cat /proc/uptime; echo '---DELIM---'; nproc; echo '---DELIM---'; cat /proc/diskstats; echo '---DELIM---'; grep -m1 '^PRETTY_NAME=' /etc/os-release 2>/dev/null || head -1 /etc/redhat-release 2>/dev/null || echo 'Unknown'; echo '---DELIM---'; cat /proc/sys/kernel/osrelease 2>/dev/null || uname -r; echo '---DELIM---'; grep -m1 -iE '^(model name|Hardware)' /proc/cpuinfo 2>/dev/null`
+// Script gộp — lấy toàn bộ metrics trong 1 lần gọi. Chạy bằng /bin/sh (shCmd) nên
+// không phụ thuộc shell đăng nhập (zsh trên TrueNAS, fish...). Chỉ dùng lệnh có cả
+// trong GNU coreutils lẫn BusyBox để chạy được trên mọi distro Linux và NAS
+// (Synology DSM, QNAP QTS, Unraid, TrueNAS SCALE, OpenMediaVault...).
+// Phần khó (chọn ổ, card mạng, tên OS) để Go parse thay vì xử lý bằng shell.
+// "exit 0" ở cuối: lệnh cuối không tìm thấy gì cũng không làm hỏng cả lần lấy.
+const metricsScript = `export LC_ALL=C
+D='---DELIM---'
+head -1 /proc/stat
+echo "$D"
+grep -E '^(MemTotal|MemFree|MemAvailable|Buffers|Cached|SReclaimable):' /proc/meminfo
+echo "$D"
+if df -Pkl / >/dev/null 2>&1; then df -Pkl; else df -Pk; fi 2>/dev/null
+echo "$D"
+cat /proc/net/dev
+echo "$D"
+cat /proc/uptime
+echo "$D"
+nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || grep -c '^processor' /proc/cpuinfo
+echo "$D"
+cat /proc/diskstats
+echo "$D"
+for f in /etc.defaults/VERSION /etc/unraid-version /etc/os-release /usr/lib/os-release /etc/lsb-release /etc/redhat-release; do
+  [ -r "$f" ] && { echo "@@$f"; cat "$f"; echo; }
+done
+[ -f /etc/config/uLinux.conf ] && { echo "@@qnap"; getcfg System Version; getcfg System 'Build Number'; } 2>/dev/null
+[ -x /usr/bin/midclt ] && [ -r /etc/version ] && { echo "@@truenas"; cat /etc/version; echo; }
+[ -d /etc/openmediavault ] && { echo "@@omv"; dpkg-query -W -f='${Version}\n' openmediavault; } 2>/dev/null
+echo "$D"
+cat /proc/sys/kernel/osrelease 2>/dev/null || uname -r
+echo "$D"
+grep -E '^(model name|cpu model|Processor|Hardware|Model)[[:space:]]*:' /proc/cpuinfo 2>/dev/null
+echo "@@lscpu"
+lscpu 2>/dev/null | grep '^Model name:'
+echo "@@dt"
+cat /proc/device-tree/model 2>/dev/null
+echo
+echo "$D"
+for i in /sys/class/net/*; do [ -e "$i/device" ] && echo "${i##*/}"; done
+echo "$D"
+for b in /sys/block/*; do [ -e "$b/device" ] && echo "${b##*/}"; done
+echo "$D"
+cat /proc/mounts
+exit 0`
 
 // ========================== Data Structures ==========================
 
@@ -88,7 +134,7 @@ type ServerMetrics struct {
 	RAMPercent  float64 `json:"ram_percent"`
 	DiskTotal   string  `json:"disk_total"`
 	DiskUsed    string  `json:"disk_used"`
-	DiskAvail   string  `json:"disk_avail"` // Cột Avail thật từ df -h
+	DiskAvail   string  `json:"disk_avail"` // Dung lượng trống (tổng các ổ lưu trữ thật, theo df)
 	DiskPercent float64 `json:"disk_percent"`
 	NetTXRate   float64 `json:"net_tx_rate"`   // bytes/s
 	NetRXRate   float64 `json:"net_rx_rate"`   // bytes/s
@@ -96,8 +142,8 @@ type ServerMetrics struct {
 	IOWriteRate float64 `json:"io_write_rate"` // bytes/s
 	Uptime      string  `json:"uptime"`
 	CPUCores    int     `json:"cpu_cores"`
-	CPUModel    string  `json:"cpu_model"` // Loại CPU (model name từ /proc/cpuinfo)
-	OS          string  `json:"os"`        // Hệ điều hành (PRETTY_NAME từ /etc/os-release)
+	CPUModel    string  `json:"cpu_model"` // Loại CPU (/proc/cpuinfo, lscpu hoặc device-tree)
+	OS          string  `json:"os"`        // Hệ điều hành (file version của NAS hoặc os-release)
 	Kernel      string  `json:"kernel"`    // Kernel (từ /proc/sys/kernel/osrelease)
 	UpdatedAt   int64   `json:"updated_at"`
 }
@@ -294,13 +340,35 @@ func (a *MonitorAgent) buildSSHConfig() (*ssh.ClientConfig, error) {
 	// Password auth (fallback hoặc primary)
 	if a.config.Password != "" {
 		authMethods = append(authMethods, ssh.Password(a.config.Password))
+		// Nhiều NAS/distro chỉ bật keyboard-interactive (PAM) thay cho password
+		// → điền mật khẩu vào các prompt ẩn ký tự
+		pw := a.config.Password
+		authMethods = append(authMethods, ssh.KeyboardInteractive(
+			func(name, instruction string, questions []string, echos []bool) ([]string, error) {
+				answers := make([]string, len(questions))
+				for i := range questions {
+					if !echos[i] {
+						answers[i] = pw
+					}
+				}
+				return answers, nil
+			}))
 	}
 
 	if len(authMethods) == 0 {
 		return nil, fmt.Errorf("no authentication methods configured (need password or key_path)")
 	}
 
+	// Bật thêm thuật toán cũ (DH-SHA1, CBC...) cho NAS/thiết bị đời cũ chạy dropbear
+	// hoặc OpenSSH cũ. Thuật toán mạnh vẫn đứng trước nên máy mới không bị ảnh hưởng.
+	supported, insecure := ssh.SupportedAlgorithms(), ssh.InsecureAlgorithms()
+
 	return &ssh.ClientConfig{
+		Config: ssh.Config{
+			KeyExchanges: append(supported.KeyExchanges, insecure.KeyExchanges...),
+			Ciphers:      append(supported.Ciphers, insecure.Ciphers...),
+			MACs:         append(supported.MACs, insecure.MACs...),
+		},
 		User:            a.config.User,
 		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
@@ -310,33 +378,39 @@ func (a *MonitorAgent) buildSSHConfig() (*ssh.ClientConfig, error) {
 
 // collectMetrics — Chạy lệnh SSH lấy metrics, parse kết quả
 func (a *MonitorAgent) collectMetrics() error {
-	session, err := a.client.NewSession()
-	if err != nil {
-		return fmt.Errorf("new session: %w", err)
-	}
-	defer session.Close()
-
-	// Chạy với timeout
+	// Chạy với timeout — cả NewSession cũng nằm trong timeout vì nó có thể treo
+	// vô hạn khi kết nối chết im lặng (vd: proxy còn sống nhưng VPS đích đã mất)
 	type cmdResult struct {
 		output []byte
 		err    error
 	}
 	resultCh := make(chan cmdResult, 1)
+	client := a.client
 
 	go func() {
-		out, err := session.CombinedOutput(metricsCommand)
+		session, err := client.NewSession()
+		if err != nil {
+			resultCh <- cmdResult{nil, fmt.Errorf("new session: %w", err)}
+			return
+		}
+		defer session.Close()
+		// Chỉ lấy stdout: stderr (vd "df: Permission denied") lẫn vào sẽ làm sai các section
+		out, err := session.Output(shCmd(metricsScript))
+		if err != nil {
+			err = fmt.Errorf("command exec: %w", err)
+		}
 		resultCh <- cmdResult{out, err}
 	}()
 
 	select {
 	case res := <-resultCh:
 		if res.err != nil {
-			return fmt.Errorf("command exec: %w", res.err)
+			return res.err
 		}
 		a.parseAllMetrics(string(res.output))
 		return nil
 	case <-time.After(CmdExecTimeout):
-		session.Close() // Force close session → goroutine sẽ exit
+		// Caller sẽ đóng client → goroutine trên được giải phóng
 		return fmt.Errorf("command timeout after %v", CmdExecTimeout)
 	}
 }
@@ -360,6 +434,16 @@ func (a *MonitorAgent) parseAllMetrics(output string) {
 		return
 	}
 
+	// Section 10-12 (nếu có): card mạng vật lý, ổ đĩa vật lý, /proc/mounts
+	section := func(i int) string {
+		if i < len(sections) {
+			return sections[i]
+		}
+		return ""
+	}
+	physNICs := parseNameList(section(10))
+	physDisks := parseNameList(section(11))
+
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -373,11 +457,11 @@ func (a *MonitorAgent) parseAllMetrics(output string) {
 	// Section 1: RAM — /proc/meminfo
 	a.metrics.RAMTotalMB, a.metrics.RAMUsedMB, a.metrics.RAMFreeMB, a.metrics.RAMPercent = parseMemInfo(sections[1])
 
-	// Section 2: Disk — df -h /
-	a.metrics.DiskTotal, a.metrics.DiskUsed, a.metrics.DiskAvail, a.metrics.DiskPercent = parseDisk(strings.TrimSpace(sections[2]))
+	// Section 2: Disk — df -Pk (mọi filesystem) + loại fs từ /proc/mounts
+	a.metrics.DiskTotal, a.metrics.DiskUsed, a.metrics.DiskAvail, a.metrics.DiskPercent = parseDiskUsage(sections[2], section(12))
 
 	// Section 3: Network — /proc/net/dev
-	rxBytes, txBytes := parseNetDev(sections[3])
+	rxBytes, txBytes := parseNetDev(sections[3], physNICs)
 	now := time.Now()
 	if a.prevNet != nil {
 		elapsed := now.Sub(a.prevNet.Time).Seconds()
@@ -410,7 +494,7 @@ func (a *MonitorAgent) parseAllMetrics(output string) {
 
 	// Section 6: Disk I/O — /proc/diskstats
 	if len(sections) > 6 {
-		readSectors, writeSectors := parseDiskStats(sections[6])
+		readSectors, writeSectors := parseDiskStats(sections[6], physDisks)
 		ioNow := time.Now()
 		if a.prevIO != nil {
 			ioElapsed := ioNow.Sub(a.prevIO.Time).Seconds()
@@ -430,9 +514,9 @@ func (a *MonitorAgent) parseAllMetrics(output string) {
 		a.prevIO = &IOStats{ReadSectors: readSectors, WriteSectors: writeSectors, Time: ioNow}
 	}
 
-	// Section 7: Hệ điều hành — PRETTY_NAME từ /etc/os-release
+	// Section 7: Hệ điều hành — file version của NAS hoặc /etc/os-release
 	if len(sections) > 7 {
-		if osName := parseOSName(sections[7]); osName != "" {
+		if osName := parseOSInfo(sections[7]); osName != "" {
 			a.metrics.OS = osName
 		}
 	}
@@ -444,9 +528,9 @@ func (a *MonitorAgent) parseAllMetrics(output string) {
 		}
 	}
 
-	// Section 9: CPU Model — "model name" / "Hardware" từ /proc/cpuinfo
+	// Section 9: CPU Model — /proc/cpuinfo, lscpu hoặc device-tree (ARM)
 	if len(sections) > 9 {
-		if model := parseCPUInfoValue(sections[9]); model != "" {
+		if model := parseCPUModel(sections[9]); model != "" {
 			a.metrics.CPUModel = model
 		}
 	}
@@ -497,12 +581,15 @@ func parseCPULine(line string) CPUStats {
 
 // calculateCPUPercent — Tính % CPU từ delta jiffies
 func calculateCPUPercent(prev, curr CPUStats) float64 {
-	totalDelta := curr.Total - prev.Total
-	if totalDelta == 0 {
+	totalDelta := float64(curr.Total) - float64(prev.Total)
+	if totalDelta <= 0 {
 		return 0
 	}
-	idleDelta := (curr.Idle + curr.IOWait) - (prev.Idle + prev.IOWait)
-	pct := (1.0 - float64(idleDelta)/float64(totalDelta)) * 100
+	// Tính bằng số thực: iowait trên một số kernel có thể giảm giữa 2 lần đọc,
+	// trừ uint64 sẽ tràn thành số khổng lồ
+	idleDelta := float64(curr.Idle+curr.IOWait) - float64(prev.Idle+prev.IOWait)
+	pct := (1.0 - idleDelta/totalDelta) * 100
+	pct = math.Max(0, math.Min(100, pct))
 	return math.Round(pct*10) / 10 // Làm tròn 1 chữ số thập phân
 }
 
@@ -525,8 +612,11 @@ func parseMemInfo(output string) (totalMB, usedMB, availMB uint64, percent float
 	total := values["MemTotal"]
 	available := values["MemAvailable"]
 	if available == 0 {
-		// Fallback cho kernel cũ
-		available = values["MemFree"] + values["Buffers"] + values["Cached"]
+		// Fallback cho kernel cũ (< 3.14, hay gặp trên NAS đời cũ) — giống cách "free" tính
+		available = values["MemFree"] + values["Buffers"] + values["Cached"] + values["SReclaimable"]
+	}
+	if available > total {
+		available = total
 	}
 
 	totalMB = total / 1024
@@ -540,35 +630,196 @@ func parseMemInfo(output string) (totalMB, usedMB, availMB uint64, percent float
 	return
 }
 
-// parseDisk — Parse output df -h / → total, used, avail, percent
-func parseDisk(output string) (total, used, avail string, percent float64) {
-	fields := strings.Fields(output)
-	if len(fields) == 0 {
-		return "N/A", "N/A", "N/A", 0
-	}
-
-	// df -h: Filesystem Size Used Avail Use% Mounted
-	// Tìm field chứa % và suy ngược ra size/used/avail
-	for i, f := range fields {
-		if strings.HasSuffix(f, "%") {
-			pctStr := strings.TrimSuffix(f, "%")
-			percent, _ = strconv.ParseFloat(pctStr, 64)
-			if i >= 4 {
-				total = fields[i-3]
-				used = fields[i-2]
-				avail = fields[i-1]
-			} else if i >= 3 {
-				total = fields[i-2]
-				used = fields[i-1]
-			}
-			return
-		}
-	}
-	return "N/A", "N/A", "N/A", 0
+// dfRow — 1 dòng của "df -Pk" (đơn vị KB)
+type dfRow struct {
+	src, mount        string
+	size, used, avail uint64
 }
 
-// parseNetDev — Parse /proc/net/dev → tổng RX/TX bytes (trừ loopback)
-func parseNetDev(output string) (rxBytes, txBytes uint64) {
+// parseDfRow — Parse 1 dòng df -P: Filesystem 1024-blocks Used Available Capacity Mounted-on.
+// Tìm cột "xx%" có 3 cột số đứng trước để chịu được tên/đường dẫn chứa dấu cách.
+func parseDfRow(line string) (dfRow, bool) {
+	f := strings.Fields(line)
+	for i := 4; i < len(f); i++ {
+		if !strings.HasSuffix(f[i], "%") {
+			continue
+		}
+		size, e1 := strconv.ParseUint(f[i-3], 10, 64)
+		used, e2 := strconv.ParseUint(f[i-2], 10, 64)
+		avail, e3 := strconv.ParseUint(f[i-1], 10, 64)
+		if e1 != nil || e2 != nil || e3 != nil {
+			continue
+		}
+		return dfRow{
+			src:   strings.Join(f[:i-3], " "),
+			mount: strings.Join(f[i+1:], " "),
+			size:  size,
+			used:  used,
+			avail: avail,
+		}, true
+	}
+	return dfRow{}, false
+}
+
+// skipFSTypes — Filesystem không phải dung lượng lưu trữ thật: ảo, ổ mạng,
+// hoặc lớp phủ lên ổ khác (ecryptfs của Synology...) — tính vào sẽ bị trùng.
+// Mọi loại "fuse.*" (shfs của Unraid, mergerfs, sshfs, rclone...) cũng bị bỏ.
+var skipFSTypes = map[string]bool{
+	"tmpfs": true, "devtmpfs": true, "ramfs": true, "rootfs": true, "proc": true,
+	"sysfs": true, "devpts": true, "cgroup": true, "cgroup2": true, "overlay": true,
+	"aufs": true, "squashfs": true, "autofs": true, "debugfs": true, "tracefs": true,
+	"securityfs": true, "pstore": true, "bpf": true, "configfs": true, "efivarfs": true,
+	"hugetlbfs": true, "mqueue": true, "fusectl": true, "binfmt_misc": true, "nsfs": true,
+	"iso9660": true, "udf": true, "ecryptfs": true, "fuse": true,
+	"nfs": true, "nfs4": true, "cifs": true, "smb3": true, "smbfs": true, "9p": true,
+	"virtiofs": true, "vboxsf": true, "vmhgfs": true, "drvfs": true, "ceph": true,
+	"glusterfs": true, "afs": true, "davfs": true, "sshfs": true,
+}
+
+// isStorageMount — Mount này có phải dung lượng lưu trữ thật cần cộng vào không
+func isStorageMount(r dfRow, fsType string) bool {
+	if r.size == 0 || strings.HasPrefix(r.src, "/dev/loop") {
+		return false // loop: snap, docker.img của Unraid... nằm sẵn trên ổ khác
+	}
+	if r.mount == "/boot" || strings.HasPrefix(r.mount, "/boot/") || r.mount == "/efi" {
+		return false // phân vùng boot/EFI, USB flash của Unraid
+	}
+	if fsType == "" {
+		return strings.HasPrefix(r.src, "/dev/")
+	}
+	return !skipFSTypes[fsType] && !strings.HasPrefix(fsType, "fuse.")
+}
+
+// unescapeMount — Giải mã \040 (dấu cách), \011... trong đường dẫn ở /proc/mounts
+func unescapeMount(s string) string {
+	if !strings.Contains(s, `\`) {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+4 <= len(s) {
+			if c, err := strconv.ParseUint(s[i+1:i+4], 8, 8); err == nil {
+				b.WriteByte(byte(c))
+				i += 3
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
+// parseDiskUsage — Tổng dung lượng các ổ lưu trữ thật từ "df -Pk" + /proc/mounts.
+// Cộng mọi ổ (NAS có /volume1, /share/..., /mnt/disk1... chứ không chỉ "/"),
+// bỏ trùng theo thiết bị (bind mount, btrfs subvolume); ZFS gộp theo pool vì
+// các dataset dùng chung dung lượng trống. Không có ổ nào hợp lệ → dùng "/".
+func parseDiskUsage(dfOut, mountsOut string) (total, used, avail string, percent float64) {
+	fsTypes := make(map[string]string)
+	for _, line := range strings.Split(mountsOut, "\n") {
+		if f := strings.Fields(line); len(f) >= 3 {
+			fsTypes[unescapeMount(f[1])] = f[2]
+		}
+	}
+
+	var sumSize, sumUsed, sumAvail uint64
+	var root *dfRow
+	seen := make(map[string]bool)
+	zfsUsed := make(map[string]uint64)
+	zfsAvail := make(map[string]uint64)
+
+	for _, line := range strings.Split(dfOut, "\n") {
+		r, ok := parseDfRow(line)
+		if !ok {
+			continue
+		}
+		if r.mount == "/" {
+			rr := r
+			root = &rr
+		}
+		fsType := fsTypes[r.mount]
+		if !isStorageMount(r, fsType) {
+			continue
+		}
+		if fsType == "zfs" {
+			pool, _, _ := strings.Cut(r.src, "/")
+			zfsUsed[pool] += r.used
+			zfsAvail[pool] = max(zfsAvail[pool], r.avail)
+			continue
+		}
+		if seen[r.src] {
+			continue
+		}
+		seen[r.src] = true
+		sumSize += r.size
+		sumUsed += r.used
+		sumAvail += r.avail
+	}
+	for pool, u := range zfsUsed {
+		sumSize += u + zfsAvail[pool]
+		sumUsed += u
+		sumAvail += zfsAvail[pool]
+	}
+
+	if sumSize == 0 {
+		if root == nil {
+			return "N/A", "N/A", "N/A", 0
+		}
+		sumSize, sumUsed, sumAvail = root.size, root.used, root.avail
+	}
+	// Cùng cách tính Use% của df: used / (used + avail), làm tròn lên
+	if sumUsed+sumAvail > 0 {
+		percent = math.Ceil(float64(sumUsed) * 100 / float64(sumUsed+sumAvail))
+	}
+	return humanKB(sumSize), humanKB(sumUsed), humanKB(sumAvail), percent
+}
+
+// humanKB — Định dạng KB giống "df -h": làm tròn lên, dưới 10 giữ 1 chữ số lẻ
+func humanKB(kb uint64) string {
+	if kb == 0 {
+		return "0"
+	}
+	units := []string{"K", "M", "G", "T", "P", "E"}
+	v := float64(kb)
+	i := 0
+	for v >= 1024 && i < len(units)-1 {
+		v /= 1024
+		i++
+	}
+	if v < 10 {
+		if v = math.Ceil(v*10) / 10; v < 10 {
+			return strconv.FormatFloat(v, 'f', 1, 64) + units[i]
+		}
+	}
+	v = math.Ceil(v)
+	if v >= 1024 && i < len(units)-1 {
+		return "1.0" + units[i+1]
+	}
+	return strconv.FormatFloat(v, 'f', 0, 64) + units[i]
+}
+
+// parseNameList — Danh sách tên (mỗi dòng 1 tên) → set
+func parseNameList(output string) map[string]bool {
+	set := make(map[string]bool)
+	for _, line := range strings.Split(output, "\n") {
+		if name := strings.TrimSpace(line); name != "" {
+			set[name] = true
+		}
+	}
+	return set
+}
+
+// parseNetDev — Parse /proc/net/dev → tổng RX/TX bytes.
+// Chỉ cộng card vật lý (physical, từ /sys/class/net/*/device): bridge, bond,
+// VLAN, veth của Docker... chạy chồng lên card thật, cộng vào sẽ bị đếm 2 lần
+// (rất hay gặp trên NAS: br0, bond0, ovs_eth0, docker0). Không có card vật lý
+// nào (container, OpenVZ venet0) → cộng tất cả trừ loopback.
+func parseNetDev(output string, physical map[string]bool) (rxBytes, txBytes uint64) {
+	type ifaceStats struct {
+		name   string
+		rx, tx uint64
+	}
+	var ifaces []ifaceStats
+	hasPhysical := false
 	for _, line := range strings.Split(output, "\n") {
 		line = strings.TrimSpace(line)
 		if !strings.Contains(line, ":") {
@@ -596,76 +847,171 @@ func parseNetDev(output string) (rxBytes, txBytes uint64) {
 
 		rx, _ := strconv.ParseUint(fields[0], 10, 64)
 		tx, _ := strconv.ParseUint(fields[8], 10, 64)
-		rxBytes += rx
-		txBytes += tx
+		ifaces = append(ifaces, ifaceStats{iface, rx, tx})
+		if physical[iface] {
+			hasPhysical = true
+		}
+	}
+	for _, s := range ifaces {
+		if hasPhysical && !physical[s.name] {
+			continue
+		}
+		rxBytes += s.rx
+		txBytes += s.tx
 	}
 	return
 }
 
-// parseDiskStats — Parse /proc/diskstats → tổng read/write sectors (chỉ lấy disk chính)
-func parseDiskStats(output string) (readSectors, writeSectors uint64) {
-	for _, line := range strings.Split(output, "\n") {
-		fields := strings.Fields(strings.TrimSpace(line))
-		if len(fields) < 14 {
-			continue
-		}
-		devName := fields[2]
-		// Chỉ lấy disk chính: sda, vda, nvme0n1, xvda (bỏ partition như sda1, vda1...)
-		if devName == "sda" || devName == "vda" || devName == "xvda" || devName == "nvme0n1" {
+// diskNameRe — Tên ổ đĩa nguyên (không phải phân vùng), dùng khi không đọc được /sys/block
+var diskNameRe = regexp.MustCompile(`^(sd[a-z]+|hd[a-z]+|vd[a-z]+|xvd[a-z]+|sata[0-9]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)$`)
+
+// parseDiskStats — Parse /proc/diskstats → tổng read/write sectors của mọi ổ vật lý.
+// physical lấy từ /sys/block/*/device: chỉ ổ thật, tự loại phân vùng, md (RAID),
+// dm (LVM/cache), loop, zram — các thiết bị này chồng lên ổ thật nên sẽ đếm trùng.
+func parseDiskStats(output string, physical map[string]bool) (readSectors, writeSectors uint64) {
+	sum := func(match func(dev string) bool) bool {
+		found := false
+		for _, line := range strings.Split(output, "\n") {
+			fields := strings.Fields(strings.TrimSpace(line))
+			if len(fields) < 14 || !match(fields[2]) {
+				continue
+			}
+			found = true
 			rs, _ := strconv.ParseUint(fields[5], 10, 64) // sectors read
 			ws, _ := strconv.ParseUint(fields[9], 10, 64) // sectors written
 			readSectors += rs
 			writeSectors += ws
 		}
+		return found
 	}
-	// Fallback: nếu không tìm thấy disk chính, lấy tất cả (trừ loop/ram)
-	if readSectors == 0 && writeSectors == 0 {
-		for _, line := range strings.Split(output, "\n") {
-			fields := strings.Fields(strings.TrimSpace(line))
-			if len(fields) < 14 {
-				continue
-			}
-			devName := fields[2]
-			if strings.HasPrefix(devName, "loop") || strings.HasPrefix(devName, "ram") {
-				continue
-			}
-			// Lấy disk không có số ở cuối (là disk chính, không phải partition)
-			lastChar := devName[len(devName)-1]
-			if lastChar >= '0' && lastChar <= '9' {
-				// Có thể là partition, bỏ qua
-				continue
-			}
-			rs, _ := strconv.ParseUint(fields[5], 10, 64)
-			ws, _ := strconv.ParseUint(fields[9], 10, 64)
-			readSectors += rs
-			writeSectors += ws
-		}
+	if len(physical) > 0 && sum(func(dev string) bool { return physical[dev] }) {
+		return
 	}
+	sum(diskNameRe.MatchString)
 	return
 }
 
-// parseOSName — Parse tên hệ điều hành từ PRETTY_NAME="..." của /etc/os-release
-func parseOSName(output string) string {
-	s := strings.TrimSpace(output)
-	if s == "" || s == "Unknown" {
-		return ""
+// splitTagged — Tách output dạng "@@tên" + nội dung thành map tên → nội dung.
+// Phần trước tag đầu tiên nằm ở key "".
+func splitTagged(output string) map[string]string {
+	blocks := make(map[string]string)
+	tag := ""
+	for _, line := range strings.Split(output, "\n") {
+		if strings.HasPrefix(line, "@@") {
+			tag = strings.TrimSpace(line[2:])
+			continue
+		}
+		blocks[tag] += line + "\n"
 	}
-	// Dạng PRETTY_NAME="Ubuntu 22.04 LTS"
-	if idx := strings.Index(s, "="); idx >= 0 {
-		s = strings.TrimSpace(s[idx+1:])
-	}
-	s = strings.Trim(s, `"`)
-	return s
+	return blocks
 }
 
-// parseCPUInfoValue — Parse giá trị sau dấu ':' từ 1 dòng /proc/cpuinfo
-// ví dụ: "model name	: Intel(R) Xeon(R) CPU" → "Intel(R) Xeon(R) CPU"
-func parseCPUInfoValue(output string) string {
-	s := strings.TrimSpace(output)
-	if idx := strings.Index(s, ":"); idx >= 0 {
-		s = strings.TrimSpace(s[idx+1:])
+// parseKV — Parse các dòng KEY=value / KEY="value" (os-release, VERSION của Synology...)
+func parseKV(s string) map[string]string {
+	kv := make(map[string]string)
+	for _, line := range strings.Split(s, "\n") {
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		kv[strings.TrimSpace(k)] = strings.Trim(strings.TrimSpace(v), `"'`)
 	}
-	return s
+	return kv
+}
+
+// firstLine — Dòng không rỗng đầu tiên
+func firstLine(s string) string {
+	for _, line := range strings.Split(s, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			return line
+		}
+	}
+	return ""
+}
+
+// parseOSInfo — Tên hệ điều hành. NAS thường có os-release chung chung (hoặc
+// không có) nên ưu tiên file version riêng: Synology, QNAP, Unraid, TrueNAS,
+// OpenMediaVault; sau đó tới os-release, lsb-release, redhat-release.
+func parseOSInfo(output string) string {
+	b := splitTagged(output)
+
+	if kv := parseKV(b["/etc.defaults/VERSION"]); len(kv) > 0 {
+		ver := kv["productversion"]
+		if ver == "" && kv["majorversion"] != "" {
+			ver = kv["majorversion"] + "." + kv["minorversion"]
+		}
+		s := strings.TrimSpace("Synology DSM " + ver)
+		if build := kv["buildnumber"]; build != "" && ver != "" {
+			s += "-" + build
+		}
+		return s
+	}
+	if lines := strings.Fields(b["qnap"]); len(lines) > 0 {
+		name := "QNAP QTS "
+		if strings.HasPrefix(lines[0], "h") {
+			name = "QNAP QuTS hero " // QuTS hero đánh số h5.x
+		}
+		s := name + lines[0]
+		if len(lines) > 1 {
+			s += " (" + lines[1] + ")"
+		}
+		return s
+	}
+	if ver := parseKV(b["/etc/unraid-version"])["version"]; ver != "" {
+		return "Unraid OS " + ver
+	}
+	if ver := firstLine(b["truenas"]); ver != "" {
+		if strings.Contains(strings.ToLower(ver), "truenas") {
+			return ver
+		}
+		return "TrueNAS " + ver
+	}
+	if ver := firstLine(b["omv"]); ver != "" {
+		return "OpenMediaVault " + ver
+	}
+	for _, f := range []string{"/etc/os-release", "/usr/lib/os-release"} {
+		kv := parseKV(b[f])
+		if kv["PRETTY_NAME"] != "" {
+			return kv["PRETTY_NAME"]
+		}
+		if kv["NAME"] != "" {
+			return strings.TrimSpace(kv["NAME"] + " " + kv["VERSION"])
+		}
+	}
+	if s := parseKV(b["/etc/lsb-release"])["DISTRIB_DESCRIPTION"]; s != "" {
+		return s
+	}
+	return firstLine(b["/etc/redhat-release"])
+}
+
+// parseCPUModel — Tên CPU. x86 có "model name"; ARM (Graviton, Ampere, CPU của
+// nhiều NAS) thường không có → thử lscpu, "Hardware", "Model" (Raspberry Pi),
+// rồi tới /proc/device-tree/model.
+func parseCPUModel(output string) string {
+	b := splitTagged(output)
+
+	info := make(map[string]string) // giá trị đầu tiên của mỗi key trong /proc/cpuinfo
+	for _, line := range strings.Split(b[""], "\n") {
+		k, v, ok := strings.Cut(line, ":")
+		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
+		if ok && v != "" && info[k] == "" {
+			info[k] = v
+		}
+	}
+	lscpu := ""
+	if _, v, ok := strings.Cut(firstLine(b["lscpu"]), ":"); ok {
+		if lscpu = strings.TrimSpace(v); lscpu == "-" {
+			lscpu = ""
+		}
+	}
+	dt := strings.TrimSpace(strings.ReplaceAll(b["dt"], "\x00", ""))
+
+	for _, v := range []string{info["model name"], info["cpu model"], info["Processor"], lscpu, info["Hardware"], info["Model"], dt} {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // parseUptime — Parse /proc/uptime → chuỗi human-readable
@@ -838,13 +1184,23 @@ func (app *App) SaveConfig() error {
 	return app.saveConfigLocked()
 }
 
-// saveConfigLocked — Ghi file (caller phải giữ configMu)
+// saveConfigLocked — Ghi file (caller phải giữ configMu).
+// Ghi ra file tạm rồi rename để không bao giờ để lại servers.json bị cụt.
+// Quyền 0600 vì file chứa mật khẩu SSH/proxy.
 func (app *App) saveConfigLocked() error {
 	data, err := json.MarshalIndent(app.config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal config: %w", err)
 	}
-	return os.WriteFile(app.configPath, data, 0644)
+	tmp := app.configPath + ".tmp"
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, app.configPath); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 // ========================== Agent Lifecycle ==========================
@@ -949,12 +1305,11 @@ func (app *App) BroadcastLoop() {
 
 // ========================== HTTP Handlers ==========================
 
+// CheckOrigin để mặc định: gorilla chỉ chấp nhận Origin trùng Host,
+// chặn website lạ mở WebSocket tới localhost (WebSocket hijacking)
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 4096,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Cho phép mọi origin (local tool)
-	},
 }
 
 // handleWebSocket — Upgrade HTTP → WebSocket
@@ -1034,7 +1389,7 @@ func fetchRemoteHostname(cfg ServerConfig, proxy *ProxyConfig) string {
 	}
 	defer session.Close()
 
-	out, err := session.Output("hostname")
+	out, err := session.Output(shCmd("hostname 2>/dev/null || cat /proc/sys/kernel/hostname"))
 	if err != nil {
 		return ""
 	}
@@ -1118,6 +1473,9 @@ func (app *App) handleUpdateServer(w http.ResponseWriter, r *http.Request) {
 	}
 	if cfg.User == "" {
 		cfg.User = "root"
+	}
+	if cfg.Group == "" {
+		cfg.Group = "Default"
 	}
 	if cfg.Label == "" {
 		// Không nhập label → lấy hostname thật của VPS qua SSH, fail thì dùng IP
@@ -1308,6 +1666,13 @@ func (app *App) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 	newName := strings.TrimSpace(req.NewName)
 
 	app.configMu.Lock()
+	for _, g := range app.config.Groups {
+		if g != oldName && strings.EqualFold(g, newName) {
+			app.configMu.Unlock()
+			httpError(w, "Cụm này đã tồn tại", http.StatusConflict)
+			return
+		}
+	}
 	found := false
 	for i, g := range app.config.Groups {
 		if g == oldName {
@@ -1451,12 +1816,193 @@ func (app *App) handleReorderGroups(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
+// handleBulkServers — POST /api/servers/bulk
+// action: "delete" | "set_group" (group) | "set_proxy" (proxy_id, "" = bỏ proxy)
+func (app *App) handleBulkServers(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IDs     []string `json:"ids"`
+		Action  string   `json:"action"`
+		Group   string   `json:"group"`
+		ProxyID string   `json:"proxy_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.IDs) == 0 {
+		httpError(w, "Danh sách server không hợp lệ", http.StatusBadRequest)
+		return
+	}
+	idSet := make(map[string]bool, len(req.IDs))
+	for _, id := range req.IDs {
+		idSet[id] = true
+	}
+
+	req.Group = strings.TrimSpace(req.Group)
+	switch req.Action {
+	case "delete":
+	case "set_group":
+		if req.Group == "" {
+			req.Group = "Default"
+		}
+	case "set_proxy":
+		if req.ProxyID != "" && app.findProxy(req.ProxyID) == nil {
+			httpError(w, "Không tìm thấy proxy", http.StatusBadRequest)
+			return
+		}
+	default:
+		httpError(w, "Thao tác không hợp lệ", http.StatusBadRequest)
+		return
+	}
+
+	app.configMu.Lock()
+	if req.Action == "set_group" {
+		exists := false
+		for _, g := range app.config.Groups {
+			if g == req.Group {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			app.configMu.Unlock()
+			httpError(w, "Không tìm thấy cụm máy chủ", http.StatusBadRequest)
+			return
+		}
+	}
+
+	var affected []ServerConfig
+	kept := app.config.Servers[:0:0]
+	for _, s := range app.config.Servers {
+		if !idSet[s.ID] {
+			kept = append(kept, s)
+			continue
+		}
+		switch req.Action {
+		case "set_group":
+			s.Group = req.Group
+		case "set_proxy":
+			s.ProxyID = req.ProxyID
+		}
+		affected = append(affected, s)
+		if req.Action != "delete" {
+			kept = append(kept, s)
+		}
+	}
+	if len(affected) == 0 {
+		app.configMu.Unlock()
+		httpError(w, "Server not found", http.StatusNotFound)
+		return
+	}
+	app.config.Servers = kept
+	err := app.saveConfigLocked()
+	app.configMu.Unlock()
+
+	if err != nil {
+		httpError(w, "Lưu thất bại: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, s := range affected {
+		switch req.Action {
+		case "delete":
+			app.stopAgent(s.ID)
+		case "set_proxy":
+			app.startAgent(s) // startAgent tự dừng agent cũ
+		case "set_group":
+			app.agentsMu.RLock()
+			ag := app.agents[s.ID]
+			app.agentsMu.RUnlock()
+			if ag != nil {
+				ag.mu.Lock()
+				ag.config.Group = s.Group
+				ag.metrics.Group = s.Group
+				ag.mu.Unlock()
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]int{"affected": len(affected)})
+}
+
+// handleBulkDeleteGroups — POST /api/groups/bulk {groups: [...]}
+// Xóa nhiều cụm; server trong các cụm đó chuyển về "Default". Không xóa "Default".
+func (app *App) handleBulkDeleteGroups(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Groups []string `json:"groups"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Groups) == 0 {
+		httpError(w, "Danh sách cụm không hợp lệ", http.StatusBadRequest)
+		return
+	}
+	del := make(map[string]bool, len(req.Groups))
+	for _, g := range req.Groups {
+		if g != "Default" {
+			del[g] = true
+		}
+	}
+
+	app.configMu.Lock()
+	var kept []string
+	removed := 0
+	for _, g := range app.config.Groups {
+		if del[g] {
+			removed++
+			continue
+		}
+		kept = append(kept, g)
+	}
+	if removed == 0 {
+		app.configMu.Unlock()
+		httpError(w, "Không tìm thấy cụm máy chủ", http.StatusNotFound)
+		return
+	}
+	moved := false
+	for i := range app.config.Servers {
+		if del[app.config.Servers[i].Group] {
+			app.config.Servers[i].Group = "Default"
+			moved = true
+		}
+	}
+	// Server bị chuyển về "Default" thì cụm này phải tồn tại để còn hiện ở UI
+	if moved && !slices.Contains(kept, "Default") {
+		kept = append([]string{"Default"}, kept...)
+	}
+	app.config.Groups = kept
+	err := app.saveConfigLocked()
+	app.configMu.Unlock()
+
+	if err != nil {
+		httpError(w, "Lưu thất bại: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	app.agentsMu.Lock()
+	for _, ag := range app.agents {
+		ag.mu.Lock()
+		if del[ag.config.Group] {
+			ag.config.Group = "Default"
+			ag.metrics.Group = "Default"
+		}
+		ag.mu.Unlock()
+	}
+	app.agentsMu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]int{"removed": removed})
+}
+
 // ========================== HTTP Router ==========================
 
 func (app *App) SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 
 	// Groups API
+	mux.HandleFunc("/api/groups/bulk", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			app.handleBulkDeleteGroups(w, r)
+			return
+		}
+		httpError(w, "Method not allowed", http.StatusMethodNotAllowed)
+	})
+
 	mux.HandleFunc("/api/groups/reorder", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut {
 			app.handleReorderGroups(w, r)
@@ -1487,7 +2033,23 @@ func (app *App) SetupRoutes() http.Handler {
 		}
 	})
 
+	mux.HandleFunc("/api/pick-file", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			app.handlePickFile(w, r)
+			return
+		}
+		httpError(w, "Method not allowed", http.StatusMethodNotAllowed)
+	})
+
 	// Server API routes
+	mux.HandleFunc("/api/servers/bulk", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			app.handleBulkServers(w, r)
+			return
+		}
+		httpError(w, "Method not allowed", http.StatusMethodNotAllowed)
+	})
+
 	mux.HandleFunc("/api/servers/reorder", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut {
 			app.handleReorderServers(w, r)
@@ -1591,7 +2153,41 @@ func (app *App) SetupRoutes() http.Handler {
 		fileServer.ServeHTTP(w, r)
 	})
 
-	return mux
+	return localOnly(mux)
+}
+
+// localOnly — Chỉ phục vụ request từ chính dashboard local:
+// Host phải là localhost/loopback (chống DNS rebinding),
+// Origin nếu có phải trùng Host (chống CSRF từ website khác).
+func localOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isLoopbackHost(r.Host) {
+			httpError(w, "Forbidden host", http.StatusForbidden)
+			return
+		}
+		if origin := r.Header.Get("Origin"); origin != "" {
+			u, err := url.Parse(origin)
+			if err != nil || !strings.EqualFold(u.Host, r.Host) {
+				httpError(w, "Forbidden origin", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// isLoopbackHost — Host header (có thể kèm port) là localhost hoặc IP loopback
+func isLoopbackHost(hostport string) bool {
+	host := hostport
+	if h, _, err := net.SplitHostPort(hostport); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // ========================== Utility Functions ==========================
@@ -1701,7 +2297,7 @@ func ensureConfigFileExists(path string) error {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("cannot create directory %s: %w", dir, err)
 		}
-		return os.WriteFile(path, data, 0644)
+		return os.WriteFile(path, data, 0600)
 	}
 	return nil
 }
@@ -1722,8 +2318,9 @@ func main() {
 	app := NewApp(configPath)
 
 	// Load cấu hình server
+	// Không chạy tiếp với config rỗng: lần lưu đầu tiên sẽ ghi đè mất toàn bộ server
 	if err := app.LoadConfig(); err != nil {
-		log.Printf("Config warning: %v (starting with empty config)", err)
+		log.Fatalf("Config error: %v — hãy sửa %s rồi chạy lại", err, configPath)
 	}
 	log.Printf("Loaded %d servers from %s", len(app.config.Servers), configPath)
 
@@ -1739,7 +2336,7 @@ func main() {
 	// Setup HTTP server
 	handler := app.SetupRoutes()
 	server := &http.Server{
-		Addr:         ServerPort,
+		Addr:         "127.0.0.1" + ServerPort, // chỉ nghe local, không mở ra LAN
 		Handler:      handler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,

@@ -323,6 +323,51 @@ func TestHTTPConnectAuth(t *testing.T) {
 	}
 }
 
+// Proxy gửi response 200 và banner SSH của máy đích trong cùng 1 lần ghi:
+// banner phải được giữ lại cho SSH client đọc, không được báo lỗi
+func TestHTTPConnectBannerInSamePacket(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	const banner = "SSH-2.0-OpenSSH_9.6\r\n"
+	go func() {
+		c, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		br := bufio.NewReader(c)
+		for {
+			line, err := br.ReadString('\n')
+			if err != nil || line == "\r\n" {
+				break
+			}
+		}
+		c.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n" + banner))
+		time.Sleep(time.Second)
+	}()
+
+	host, port, _ := net.SplitHostPort(ln.Addr().String())
+	pint, _ := strconv.Atoi(port)
+	p := &ProxyConfig{Type: "http", Host: host, Port: pint}
+	conn, err := dialThroughProxy("1.2.3.4:22", p, 5*time.Second)
+	if err != nil {
+		t.Fatalf("http CONNECT dial: %v", err)
+	}
+	defer conn.Close()
+
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	got := make([]byte, len(banner))
+	if _, err := io.ReadFull(conn, got); err != nil {
+		t.Fatalf("read banner: %v", err)
+	}
+	if string(got) != banner {
+		t.Fatalf("banner = %q, want %q", got, banner)
+	}
+}
+
 func TestValidateProxy(t *testing.T) {
 	cases := []struct {
 		name    string

@@ -48,7 +48,7 @@ func TestCommitNewerThanVersion(t *testing.T) {
 	// để test không phụ thuộc giá trị AppVersion cụ thể.
 	p := parseVersionParts(AppVersion)
 	vDay := time.Date(p[0], time.Month(p[1]), p[2], 0, 0, 0, 0, time.UTC)
-	after := vDay.AddDate(0, 0, 2).Format(time.RFC3339)  // sau mốc → true
+	after := vDay.AddDate(0, 0, 2).Format(time.RFC3339)   // sau mốc → true
 	before := vDay.AddDate(0, 0, -1).Format(time.RFC3339) // trước mốc → false
 
 	if commitNewerThanVersion(after) != true {

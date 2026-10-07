@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSH Monitor — High-Performance VPS Monitor</title>
+    <link rel="icon" type="image/png" href="/logo.png">
     <meta name="description" content="Crisp, high-contrast, agentless VPS monitoring & cluster management inspired by SSH Workbench">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,18 +108,10 @@
         }
 
         .brand-logo-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #10b981, #06b6d4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
         }
-
-        .brand-logo-icon svg { width: 16px; height: 16px; }
 
         .brand-text {
             font-size: 0.88rem;
@@ -202,40 +195,6 @@
             color: var(--neon-cyan);
         }
 
-        /* Sidebar Footer */
-        .sidebar-footer-box {
-            padding: 14px;
-            border-top: 1px solid var(--border-crisp);
-            background-color: #080c13;
-        }
-
-        .live-status-pill {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            border-radius: 6px;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-crisp);
-            font-size: 0.78rem;
-        }
-
-        .live-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background-color: var(--neon-green);
-            box-shadow: 0 0 8px var(--neon-green-glow);
-            animation: liveGlow 2s infinite ease-in-out;
-        }
-
-        @keyframes liveGlow {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.15); opacity: 0.7; }
-        }
-
-        .live-dot.offline { background-color: var(--neon-red); box-shadow: none; animation: none; }
-
         /* ============================================================
            MAIN WORKBENCH AREA
            ============================================================ */
@@ -275,7 +234,7 @@
             margin-right: 6px;
         }
 
-        .select-cluster-dropdown, .select-interval-dropdown {
+        .select-interval-dropdown {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -292,7 +251,7 @@
             transition: border-color 120ms ease, background 120ms ease;
         }
 
-        .select-cluster-dropdown:hover, .select-interval-dropdown:hover {
+        .select-interval-dropdown:hover {
             border-color: var(--border-hover);
             background-color: var(--bg-pill-hover);
         }
@@ -548,28 +507,6 @@
         .btn-update-check svg { width: 14px; height: 14px; }
         .btn-update-check.spinning svg { animation: spinRefresh 900ms linear infinite; }
         @keyframes spinRefresh { to { transform: rotate(360deg); } }
-
-        .btn-icon-refresh {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            background-color: var(--bg-pill);
-            border: 1px solid var(--border-crisp);
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 120ms ease;
-        }
-
-        .btn-icon-refresh:hover {
-            background-color: var(--bg-pill-hover);
-            color: var(--text-white);
-            border-color: var(--border-hover);
-        }
-
-        .btn-icon-refresh svg { width: 15px; height: 15px; }
 
         .btn-create-group {
             display: flex;
@@ -1346,6 +1283,65 @@
             user-select: none;
         }
 
+        /* Chọn nhiều để thao tác hàng loạt */
+        .select-cell { width: 40px; min-width: 40px; max-width: 40px; text-align: center; padding-left: 0 !important; padding-right: 0 !important; }
+        .bulk-cb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            border: 1.5px solid #64748b;
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+            vertical-align: middle;
+            display: inline-grid;
+            place-content: center;
+            transition: border-color 0.15s, background-color 0.15s;
+        }
+        .bulk-cb:hover { border-color: var(--neon-cyan); }
+        .bulk-cb:checked, .bulk-cb:indeterminate { background: var(--neon-cyan); border-color: var(--neon-cyan); }
+        .bulk-cb:checked::after {
+            content: '';
+            width: 4px;
+            height: 8px;
+            border: solid #0f172a;
+            border-width: 0 2px 2px 0;
+            transform: translateY(-1px) rotate(45deg);
+        }
+        .bulk-cb:indeterminate::after { content: ''; width: 8px; height: 2px; background: #0f172a; border-radius: 1px; }
+        tr.row-selected td { background-color: rgba(6, 182, 212, 0.07); }
+        .bulk-bar {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border: 1px solid rgba(6, 182, 212, 0.35);
+            background: rgba(6, 182, 212, 0.06);
+            border-radius: 8px;
+        }
+        .bulk-bar.show { display: flex; }
+        .bulk-bar .bulk-count { font-size: 0.85rem; font-weight: 700; color: var(--neon-cyan); margin-right: 6px; }
+        .bulk-btn {
+            padding: 5px 12px;
+            border-radius: 6px;
+            background: #0f172a;
+            border: 1px solid var(--border-hover);
+            color: #e2e8f0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .bulk-btn:hover { border-color: var(--neon-cyan); }
+        .bulk-btn.danger { color: #f87171; border-color: rgba(239, 68, 68, 0.45); }
+        .bulk-btn.danger:hover { border-color: #ef4444; }
+        .bulk-btn.ghost { background: transparent; border-color: transparent; color: #94a3b8; margin-left: auto; }
+        .proxy-usage-link { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+        .proxy-usage-link:hover { color: var(--neon-cyan) !important; }
+
         .drag-handle-btn {
             display: inline-flex;
             align-items: center;
@@ -1477,22 +1473,34 @@
         /* Toast */
         .toast-shelf {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 2000;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            gap: 8px;
+            max-width: calc(100vw - 32px);
+            pointer-events: none;
         }
 
         .toast-unit {
-            padding: 10px 14px;
-            border-radius: 6px;
+            padding: 12px 20px;
+            border-radius: 8px;
             background-color: #101624;
             border: 1px solid #202b3f;
             color: #fff;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-align: center;
             box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            animation: toast-in 0.2s ease-out;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
@@ -1503,12 +1511,7 @@
         <!-- ======================= LEFT SIDEBAR ======================= -->
         <aside class="workbench-sidebar">
             <div class="sidebar-brand">
-                <div class="brand-logo-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
-                        <line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
-                    </svg>
-                </div>
+                <img class="brand-logo-icon" src="/logo.png" alt="">
                 <span class="brand-text">SSH Monitor</span>
             </div>
 
@@ -1592,22 +1595,6 @@
                     <div id="topbar-dashboard-actions" style="display: flex; align-items: center; gap: 8px;">
                     </div>
 
-                    <!-- Actions cho QUẢN LÝ SERVER: Chỉ có duy nhất + Thêm Server -->
-                    <div id="topbar-manage-actions" style="display: none; align-items: center; gap: 8px;">
-                        <button class="btn-create-server" onclick="openAddServerModal()" title="Thêm máy chủ mới">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            <span>+ Thêm Server</span>
-                        </button>
-                    </div>
-
-                    <!-- Actions cho QUẢN LÝ GROUP: Chỉ có duy nhất + Thêm Group -->
-                    <div id="topbar-cluster-actions" style="display: none; align-items: center; gap: 8px;">
-                        <button class="btn-create-group" onclick="openAddGroupModal()" title="Tạo Group mới">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            <span>+ Tạo Group</span>
-                        </button>
-                    </div>
-
                     <!-- Phiên bản + báo bản mới + liên hệ Telegram (luôn hiển thị) -->
                     <span class="app-version-chip" id="app-version-chip" title="Phiên bản hiện tại">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -1674,7 +1661,13 @@
                     </div>
                     <div>
                         <label class="field-label">Đường dẫn Key SSH</label>
-                        <input class="modal-input" id="inp-srv-key" placeholder="~/.ssh/vps_key hoặc id_rsa">
+                        <div style="display: flex; gap: 8px; align-items: stretch;">
+                            <input class="modal-input" id="inp-srv-key" placeholder="~/.ssh/vps_key hoặc id_rsa" style="flex: 1; min-width: 0;">
+                            <button type="button" class="btn-modal-cancel" id="btn-pick-key" onclick="pickSSHKeyFile()" title="Chọn file key trên máy" style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                <span>Chọn file</span>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label class="field-label">Proxy kết nối</label>
@@ -1811,6 +1804,20 @@
         </div>
     </div>
 
+    <!-- ======================= MODAL: THÔNG TIN (CHỈ XEM) ======================= -->
+    <div class="modal-overlay" id="modal-info">
+        <div class="modal-box" style="max-width: 560px;">
+            <div class="modal-head">
+                <h3 id="info-title">Thông tin</h3>
+                <button class="modal-close" onclick="closeInfoModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="info-body" style="max-height: 60vh; overflow-y: auto;"></div>
+            <div class="modal-foot">
+                <button type="button" class="btn-modal-cancel" onclick="closeInfoModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Shelf -->
     <div class="toast-shelf" id="toast-shelf"></div>
 
@@ -1841,6 +1848,9 @@
         let searchQuery = '';
         let currentGroupFilter = localStorage.getItem('wb_group_filter') || 'all';
         let editingServerId = null;
+        let selectedServerIds = new Set(); // Server đang tick ở QUẢN LÝ SERVER
+        let selectedGroups = new Set();    // Group đang tick ở QUẢN LÝ GROUP
+        let visibleServerIds = [];         // Server đang hiển thị (sau lọc) — phạm vi của "chọn tất cả"
 
         let refreshIntervalMs = parseInt(localStorage.getItem('wb_refresh_interval')) || 1000;
         let lastRenderTime = 0;
@@ -1940,6 +1950,13 @@
             return `${used} / ${total} / Free ${freeStr}`;
         }
 
+        /* Tham số chuỗi cho JS trong onclick="f(...)": JSON.stringify tạo literal JS
+           hợp lệ, escapeHTML để nằm an toàn trong attribute. Không dùng '${escapeHTML(x)}'
+           vì trình duyệt decode &#39; thành ' trước khi chạy JS → chèn được code. */
+        function jsArg(s) {
+            return escapeHTML(JSON.stringify(String(s ?? '')));
+        }
+
         function escapeHTML(s) {
             if (!s) return '';
             return String(s)
@@ -1993,44 +2010,32 @@
             const dashControls = document.getElementById('topbar-dashboard-controls');
             const searchBox = document.getElementById('topbar-search-box');
             const dashActions = document.getElementById('topbar-dashboard-actions');
-            const manageActions = document.getElementById('topbar-manage-actions');
-            const clusterActions = document.getElementById('topbar-cluster-actions');
 
             if (tab === 'servers') {
                 titleTag.textContent = 'DASHBOARD';
                 dashControls.style.display = 'flex';
                 searchBox.style.display = 'block';
                 dashActions.style.display = 'flex';
-                manageActions.style.display = 'none';
-                clusterActions.style.display = 'none';
             } else if (tab === 'manage-servers') {
                 titleTag.textContent = 'QUẢN LÝ SERVER';
                 dashControls.style.display = 'none';
                 searchBox.style.display = 'block';
                 dashActions.style.display = 'none';
-                manageActions.style.display = 'flex';
-                clusterActions.style.display = 'none';
             } else if (tab === 'clusters') {
                 titleTag.textContent = 'QUẢN LÝ GROUP';
                 dashControls.style.display = 'none';
                 searchBox.style.display = 'none';
                 dashActions.style.display = 'none';
-                manageActions.style.display = 'none';
-                clusterActions.style.display = 'flex';
             } else if (tab === 'sync') {
                 titleTag.textContent = 'ĐỒNG BỘ FILE';
                 dashControls.style.display = 'none';
                 searchBox.style.display = 'none';
                 dashActions.style.display = 'none';
-                manageActions.style.display = 'none';
-                clusterActions.style.display = 'none';
             } else if (tab === 'settings') {
                 titleTag.textContent = 'CÀI ĐẶT';
                 dashControls.style.display = 'none';
                 searchBox.style.display = 'none';
                 dashActions.style.display = 'none';
-                manageActions.style.display = 'none';
-                clusterActions.style.display = 'none';
             }
         }
 
@@ -2063,12 +2068,6 @@
             }
         });
 
-        window.handleClusterChange = function(val) {
-            selectedCluster = val;
-            localStorage.setItem('wb_selected_cluster', val);
-            renderViewContent();
-        };
-
         window.handleSearch = function(val) {
             searchQuery = val.trim().toLowerCase();
             renderViewContent();
@@ -2078,26 +2077,10 @@
             refreshIntervalMs = parseInt(val) || 1000;
             localStorage.setItem('wb_refresh_interval', refreshIntervalMs);
             const secText = (refreshIntervalMs / 1000) + 's';
-            const labelEl = document.getElementById('wb-live-label');
-            if (labelEl) labelEl.textContent = 'Live ' + secText;
             showToast(`Thời gian làm mới: ${secText}`);
         };
 
-        window.forceRefreshData = function() {
-            refreshServerConfigs();
-            showToast('Đã làm mới dữ liệu');
-        };
-
         function updateClusterSelectors() {
-            const topSel = document.getElementById('top-cluster-select');
-            if (topSel) {
-                let opts = `<option value="all">All Servers</option>`;
-                systemGroups.forEach(g => {
-                    opts += `<option value="${escapeHTML(g)}" ${selectedCluster === g ? 'selected' : ''}>${escapeHTML(g)}</option>`;
-                });
-                topSel.innerHTML = opts;
-            }
-
             const srvSel = document.getElementById('inp-srv-group');
             if (srvSel) {
                 if (systemGroups.length === 0) {
@@ -2115,10 +2098,6 @@
 
             wsConn.onopen = () => {
                 wsBackoff = 1000;
-                const dot = document.getElementById('wb-live-dot');
-                if (dot) dot.className = 'live-dot';
-                const status = document.getElementById('wb-live-status');
-                if (status) status.textContent = 'Đã kết nối';
             };
 
             wsConn.onmessage = (event) => {
@@ -2148,10 +2127,6 @@
             };
 
             wsConn.onclose = () => {
-                const dot = document.getElementById('wb-live-dot');
-                if (dot) dot.className = 'live-dot offline';
-                const status = document.getElementById('wb-live-status');
-                if (status) status.textContent = 'Mất kết nối';
                 setTimeout(() => {
                     wsBackoff = Math.min(wsBackoff * 1.5, 30000);
                     connectWebSocket();
@@ -2171,7 +2146,7 @@
             let html = '<div class="group-filter-bar">';
             html += `<button class="group-filter-btn ${currentGroupFilter === 'all' ? 'active' : ''}" onclick="setGroupFilter('all')">All Server</button>`;
             systemGroups.forEach(g => {
-                html += `<button class="group-filter-btn ${currentGroupFilter === g ? 'active' : ''}" onclick="setGroupFilter('${escapeHTML(g)}')">${escapeHTML(g)}</button>`;
+                html += `<button class="group-filter-btn ${currentGroupFilter === g ? 'active' : ''}" onclick="setGroupFilter(${jsArg(g)})">${escapeHTML(g)}</button>`;
             });
             html += '</div>';
             return html;
@@ -2377,19 +2352,19 @@
 
                     <!-- 7. ACTIONS -->
                     <td class="actions-cell">
-                        <button class="btn-more-dots" onclick="toggleRowMenu(event, '${escapeHTML(s.id)}')">
+                        <button class="btn-more-dots" onclick="toggleRowMenu(event, ${jsArg(s.id)})">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
                         </button>
                         <div class="action-dropdown-menu" id="menu-${escapeHTML(s.id)}">
-                            <button class="menu-action-btn" onclick="openTerminal('${escapeHTML(s.id)}', '${escapeHTML(s.label || s.host || s.id)}', '${escapeHTML(s.host || '')}')">
+                            <button class="menu-action-btn" onclick="openTerminal(${jsArg(s.id)}, ${jsArg(s.label || s.host || s.id)}, ${jsArg(s.host || '')})">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                                 Terminal
                             </button>
-                            <button class="menu-action-btn" onclick="editServer('${escapeHTML(s.id)}')">
+                            <button class="menu-action-btn" onclick="editServer(${jsArg(s.id)})">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 Sửa cấu hình
                             </button>
-                            <button class="menu-action-btn danger" onclick="deleteServer('${escapeHTML(s.id)}', '${escapeHTML(s.host || s.label || s.id)}')">
+                            <button class="menu-action-btn danger" onclick="deleteServer(${jsArg(s.id)}, ${jsArg(s.host || s.label || s.id)})">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
                                 Xóa server
                             </button>
@@ -2493,16 +2468,29 @@
                         <span>Danh Sách Máy Chủ</span>
                         <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 600;">(${servers.length})</span>
                     </h3>
+                    <button class="btn-create-server" onclick="openAddServerModal()" title="Thêm máy chủ mới">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>Thêm Server</span>
+                    </button>
                 </div>
 
                 ${renderGroupFilterBar()}
+
+                <div class="bulk-bar" id="srv-bulk-bar">
+                    <span class="bulk-count" id="srv-bulk-count"></span>
+                    <button class="bulk-btn" onclick="bulkServersSetGroup()">Đổi group</button>
+                    <button class="bulk-btn" onclick="bulkServersSetProxy()">Gán proxy</button>
+                    <button class="bulk-btn" onclick="bulkServersClearProxy()">Bỏ proxy</button>
+                    <button class="bulk-btn danger" onclick="bulkServersDelete()">Xóa</button>
+                    <button class="bulk-btn ghost" onclick="clearServerSelection()">Bỏ chọn</button>
+                </div>
 
                 <div class="table-container">
                     <table class="wb-table" id="manage-servers-table">
                         <thead>
                             <tr>
                                 <th style="width: 54px; min-width: 54px; max-width: 54px; text-align: center;"></th>
-                                <th style="width: 60px; min-width: 60px; max-width: 60px; text-align: center;">STT</th>
+                                <th class="select-cell"><input type="checkbox" class="bulk-cb" id="srv-select-all" title="Chọn tất cả" onchange="toggleAllServers(this.checked)"></th>
                                 <th style="width: 200px;">Tên Server / Hostname</th>
                                 <th style="width: 170px;">Địa chỉ Host / IP</th>
                                 <th style="width: 280px; min-width: 240px;">Hệ điều hành / Kernel</th>
@@ -2512,16 +2500,16 @@
                                 <th style="width: 120px;">Cụm (Group)</th>
                                 <th style="width: 100px;">Xác thực</th>
                                 <th style="width: 130px;">Proxy</th>
-                                <th style="width: 60px; text-align: right;">Thao tác</th>
+                                <th style="width: 60px;"></th>
                             </tr>
                         </thead>
                         <tbody id="servers-mgmt-tbody">
             `;
 
             if (servers.length === 0) {
-                html += `<tr><td colspan="12" style="text-align: center; padding: 40px; color: var(--text-muted);">Chưa có máy chủ nào. Bấm "+ Thêm Server" ở góc trên để bắt đầu.</td></tr>`;
+                html += `<tr><td colspan="12" style="text-align: center; padding: 40px; color: var(--text-muted);">Chưa có máy chủ nào. Bấm "+ Thêm Server" để bắt đầu.</td></tr>`;
             } else {
-                servers.forEach((s, idx) => {
+                servers.forEach(s => {
                     const authText = s.key_path ? 'SSH Key' : 'Password';
                     const proxyObj = s.proxy_id ? proxyList.find(p => p.id === s.proxy_id) : null;
                     const proxyText = proxyObj
@@ -2531,7 +2519,7 @@
                     const osKernelHTML = renderOSKernelCell(m);
 
                     html += `
-                        <tr class="draggable-row" data-id="${escapeHTML(s.id)}">
+                        <tr class="draggable-row${selectedServerIds.has(s.id) ? ' row-selected' : ''}" data-id="${escapeHTML(s.id)}">
                             <!-- CỘT TAY CẦM KÉO THẢ ⋮⋮ -->
                             <td class="drag-cell">
                                 <div class="drag-handle-btn drag-handle" title="Kéo thả để sắp xếp thứ tự">
@@ -2542,7 +2530,7 @@
                                     </svg>
                                 </div>
                             </td>
-                            <td style="text-align: center; font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${idx + 1}</td>
+                            <td class="select-cell"><input type="checkbox" class="bulk-cb srv-row-cb" ${selectedServerIds.has(s.id) ? 'checked' : ''} onchange="toggleServerSelect(${jsArg(s.id)}, this)"></td>
                             <td>
                                 <strong style="color: #fff; font-size: 1.02rem; font-weight: 700;">${escapeHTML(s.label || s.id)}</strong>
                             </td>
@@ -2571,19 +2559,19 @@
                                 ${proxyText}
                             </td>
                             <td class="actions-cell" style="width: 60px;">
-                                <button class="btn-more-dots" onclick="toggleRowMenu(event, '${escapeHTML(s.id)}')">
+                                <button class="btn-more-dots" onclick="toggleRowMenu(event, ${jsArg(s.id)})">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
                                 </button>
                                 <div class="action-dropdown-menu" id="menu-${escapeHTML(s.id)}">
-                                    <button class="menu-action-btn" onclick="openTerminal('${escapeHTML(s.id)}', '${escapeHTML(s.label || s.host || s.id)}', '${escapeHTML(s.host || '')}')">
+                                    <button class="menu-action-btn" onclick="openTerminal(${jsArg(s.id)}, ${jsArg(s.label || s.host || s.id)}, ${jsArg(s.host || '')})">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                                         Terminal
                                     </button>
-                                    <button class="menu-action-btn" onclick="editServer('${escapeHTML(s.id)}')">
+                                    <button class="menu-action-btn" onclick="editServer(${jsArg(s.id)})">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                         Sửa cấu hình
                                     </button>
-                                    <button class="menu-action-btn danger" onclick="deleteServer('${escapeHTML(s.id)}', '${escapeHTML(s.host || s.label || s.id)}')">
+                                    <button class="menu-action-btn danger" onclick="deleteServer(${jsArg(s.id)}, ${jsArg(s.host || s.label || s.id)})">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
                                         Xóa server
                                     </button>
@@ -2596,6 +2584,8 @@
 
             html += `</tbody></table></div>`;
             area.innerHTML = html;
+            visibleServerIds = servers.map(s => s.id);
+            updateServerBulkBar();
 
             // Bind Drag & Drop Events
             const tbody = document.getElementById('servers-mgmt-tbody');
@@ -2728,6 +2718,19 @@
                         <span>Danh Sách Group</span>
                         <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 600;">(${systemGroups.length})</span>
                     </h3>
+                    <button class="btn-create-group" onclick="openAddGroupModal()" title="Tạo Group mới">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>Tạo Group</span>
+                    </button>
+                </div>
+
+                <div class="bulk-bar" id="grp-bulk-bar">
+                    <span class="bulk-count" id="grp-bulk-count"></span>
+                    <button class="bulk-btn" onclick="bulkGroupsMove()">Chuyển server sang group</button>
+                    <button class="bulk-btn" onclick="bulkGroupsSetProxy()">Gán proxy</button>
+                    <button class="bulk-btn" onclick="bulkGroupsClearProxy()">Bỏ proxy</button>
+                    <button class="bulk-btn danger" onclick="bulkGroupsDelete()">Xóa</button>
+                    <button class="bulk-btn ghost" onclick="clearGroupSelection()">Bỏ chọn</button>
                 </div>
 
                 <div class="table-container">
@@ -2735,22 +2738,22 @@
                         <thead>
                             <tr>
                                 <th style="width: 54px; min-width: 54px; max-width: 54px; text-align: center;"></th>
-                                <th style="width: 60px; min-width: 60px; max-width: 60px; text-align: center;">STT</th>
+                                <th class="select-cell"><input type="checkbox" class="bulk-cb" id="grp-select-all" title="Chọn tất cả" onchange="toggleAllGroups(this.checked)"></th>
                                 <th>Tên Group</th>
                                 <th>Số lượng máy chủ</th>
-                                <th style="text-align: right; width: 150px; white-space: nowrap;">Thao tác</th>
+                                <th style="width: 60px;"></th>
                             </tr>
                         </thead>
                         <tbody id="groups-mgmt-tbody">
             `;
 
             if (systemGroups.length === 0) {
-                html += `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Chưa có group nào. Bấm "+ Tạo Group" ở góc trên để bắt đầu.</td></tr>`;
+                html += `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Chưa có group nào. Bấm "+ Tạo Group" để bắt đầu.</td></tr>`;
             } else {
-                systemGroups.forEach((g, idx) => {
+                systemGroups.forEach(g => {
                     const count = groupCounts[g] || 0;
                     html += `
-                        <tr class="draggable-group-row" data-group="${escapeHTML(g)}">
+                        <tr class="draggable-group-row${selectedGroups.has(g) ? ' row-selected' : ''}" data-group="${escapeHTML(g)}">
                             <!-- CỘT TAY CẦM KÉO THẢ GROUP ⋮⋮ -->
                             <td class="drag-cell">
                                 <div class="drag-handle-btn drag-handle-group" title="Kéo thả để sắp xếp thứ tự group">
@@ -2761,12 +2764,23 @@
                                     </svg>
                                 </div>
                             </td>
-                            <td style="text-align: center; font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: #cbd5e1;">${idx + 1}</td>
+                            <td class="select-cell"><input type="checkbox" class="bulk-cb grp-row-cb" ${selectedGroups.has(g) ? 'checked' : ''} onchange="toggleGroupSelect(${jsArg(g)}, this)"></td>
                             <td><strong style="color: var(--text-white); font-size: 1.02rem; font-weight: 700;">${escapeHTML(g)}</strong></td>
                             <td><span style="font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: var(--neon-cyan);">${count} nodes</span></td>
-                            <td style="text-align: right; white-space: nowrap;">
-                                <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #cbd5e1;" onclick="openEditGroupModal('${escapeHTML(g)}')" title="Đổi tên">✏️ Sửa</button>
-                                <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #f87171;" onclick="deleteGroup('${escapeHTML(g)}', ${count})" title="Xóa">🗑️</button>
+                            <td class="actions-cell" style="width: 60px;">
+                                <button class="btn-more-dots" onclick="toggleRowMenu(event, ${jsArg('group:' + g)})">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                                </button>
+                                <div class="action-dropdown-menu" id="menu-group:${escapeHTML(g)}">
+                                    <button class="menu-action-btn" onclick="openEditGroupModal(${jsArg(g)})">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        Đổi tên
+                                    </button>
+                                    <button class="menu-action-btn danger" onclick="deleteGroup(${jsArg(g)}, ${count})">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                        Xóa group
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -2775,6 +2789,7 @@
 
             html += `</tbody></table></div>`;
             area.innerHTML = html;
+            updateGroupBulkBar();
 
             const tbody = document.getElementById('groups-mgmt-tbody');
             if (tbody) {
@@ -3166,7 +3181,7 @@
             wrap.innerHTML = grouped.map(({ group, servers }) => {
                 const open = syncSourceOpenGroups.has(group);
                 return `<div class="sync-group-block">
-                    <div class="sync-group-head clickable" onclick="syncToggleSourceGroupOpen('${escapeHTML(group)}')" title="Bấm để thu gọn / xổ danh sách máy">
+                    <div class="sync-group-head clickable" onclick="syncToggleSourceGroupOpen(${jsArg(group)})" title="Bấm để thu gọn / xổ danh sách máy">
                         <svg class="grp-caret ${open ? 'open' : ''}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                         <span class="grp-name">${escapeHTML(group)}</span>
                         <span class="grp-count">${servers.length} máy</span>
@@ -3181,7 +3196,7 @@
         function syncSourceItemHTML(s, showGroup) {
             const online = syncIsOnline(s.id);
             const selected = s.id === syncSourceId;
-            return `<div class="sync-target-item ${selected ? 'selected' : ''}" data-src-id="${escapeHTML(s.id)}" onclick="syncPickSource('${escapeHTML(s.id)}')" title="Chọn làm máy nguồn">
+            return `<div class="sync-target-item ${selected ? 'selected' : ''}" data-src-id="${escapeHTML(s.id)}" onclick="syncPickSource(${jsArg(s.id)})" title="Chọn làm máy nguồn">
                 <span class="node-dot ${online ? '' : 'offline'}" id="sync-src-dot-${escapeHTML(s.id)}"></span>
                 <span class="tgt-label">${escapeHTML(s.label || s.id)}${showGroup && s.group ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(${escapeHTML(s.group)})</span>` : ''}</span>
                 <span class="tgt-host">${escapeHTML(s.host)}</span>
@@ -3233,18 +3248,18 @@
                 const allChecked = candidates.length > 0 && checkedCount === candidates.length;
                 const open = q ? true : syncOpenGroups.has(group); // khi tìm kiếm: tự xổ group khớp
                 return `<div class="sync-group-block">
-                    <div class="sync-group-head ${candidates.length ? 'clickable' : ''}" onclick="syncToggleGroupOpen('${escapeHTML(group)}')" title="Bấm để thu gọn / xổ danh sách máy">
+                    <div class="sync-group-head ${candidates.length ? 'clickable' : ''}" onclick="syncToggleGroupOpen(${jsArg(group)})" title="Bấm để thu gọn / xổ danh sách máy">
                         <svg class="grp-caret ${open ? 'open' : ''}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                         <span class="grp-name">${escapeHTML(group)}</span>
                         ${checkedCount ? `<span class="count-badge">${checkedCount}</span>` : ''}
                         <span class="grp-count">${candidates.length} máy</span>
-                        <input type="checkbox" ${allChecked ? 'checked' : ''} onclick="event.stopPropagation()" onchange="syncToggleGroup('${escapeHTML(group)}', this.checked)" ${candidates.length ? '' : 'disabled'} title="Chọn / bỏ chọn cả cụm">
+                        <input type="checkbox" ${allChecked ? 'checked' : ''} onclick="event.stopPropagation()" onchange="syncToggleGroup(${jsArg(group)}, this.checked)" ${candidates.length ? '' : 'disabled'} title="Chọn / bỏ chọn cả cụm">
                     </div>
                     <div class="sync-targets-scroll" ${open ? '' : 'hidden'}>
                         ${candidates.length ? candidates.map(s => {
                             const online = syncIsOnline(s.id);
                             return `<label class="sync-target-item">
-                                <input type="checkbox" ${syncDestIds.has(s.id) ? 'checked' : ''} onchange="syncToggleTarget('${escapeHTML(s.id)}', this.checked)">
+                                <input type="checkbox" ${syncDestIds.has(s.id) ? 'checked' : ''} onchange="syncToggleTarget(${jsArg(s.id)}, this.checked)">
                                 <span class="node-dot ${online ? '' : 'offline'}" id="sync-dot-${escapeHTML(s.id)}"></span>
                                 <span class="tgt-label">${escapeHTML(s.label || s.id)}</span>
                                 <span class="tgt-host">${escapeHTML(s.host)}</span>
@@ -3438,7 +3453,7 @@
             if (!syncInspectResult) return;
             const valid = (syncInspectResult.targets || []).filter(t => t.ok && !t.same);
             openConfirmModal('Xác nhận đồng bộ',
-                `Đồng bộ "${syncInspectResult.source_path}" tới ${valid.length} máy đích? File trùng tên ở đích sẽ bị ghi đè.`,
+                `Đồng bộ <strong>${escapeHTML(syncInspectResult.source_path)}</strong> tới ${valid.length} máy đích?<br><span style="color:#94a3b8;font-size:0.85rem;">File trùng tên ở đích sẽ bị ghi đè.</span>`,
                 syncStartJob);
         };
 
@@ -3592,12 +3607,28 @@
                             <div style="font-family: var(--font-mono); font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">${escapeHTML(p.type)}://${escapeHTML(p.host)}:${p.port}${p.username ? ' · có auth' : ''}</div>
                         </td>
                         <td><span style="font-family: var(--font-mono); font-size: 0.78rem; color: #7dd3fc; background: rgba(125,211,252,0.1); padding: 2px 8px; border-radius: 4px;">${escapeHTML(p.type.toUpperCase())}</span></td>
-                        <td style="font-family: var(--font-mono); color: #cbd5e1; white-space: nowrap;">${usage} server</td>
+                        <td style="font-family: var(--font-mono); color: #cbd5e1; white-space: nowrap;">${usage > 0
+                            ? `<span class="proxy-usage-link" title="Xem các server đang dùng proxy này" onclick="showProxyUsers(${jsArg(p.id)})">${usage} server</span>`
+                            : '0 server'}</td>
                         <td><span class="prx-status" id="prx-status-${escapeHTML(p.id)}" style="font-size: 0.78rem; color: #64748b;">—</span></td>
-                        <td style="text-align: right; white-space: nowrap;">
-                            <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #7dd3fc;" onclick="testSavedProxy('${escapeHTML(p.id)}')" title="Test kết nối proxy này">🔌 Test</button>
-                            <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #cbd5e1;" onclick="openProxyModal('${escapeHTML(p.id)}')" title="Sửa proxy">✏️ Sửa</button>
-                            <button class="btn-more-dots" style="width: auto; padding: 0 10px; color: #f87171;" onclick="deleteProxy('${escapeHTML(p.id)}', '${escapeHTML(p.name)}', ${usage})" title="Xóa proxy">🗑️</button>
+                        <td class="actions-cell" style="width: 60px;">
+                            <button class="btn-more-dots" onclick="toggleRowMenu(event, ${jsArg('proxy:' + p.id)})">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                            </button>
+                            <div class="action-dropdown-menu" id="menu-proxy:${escapeHTML(p.id)}">
+                                <button class="menu-action-btn" onclick="testSavedProxy(${jsArg(p.id)})">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                    Test kết nối
+                                </button>
+                                <button class="menu-action-btn" onclick="openProxyModal(${jsArg(p.id)})">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Sửa proxy
+                                </button>
+                                <button class="menu-action-btn danger" onclick="deleteProxy(${jsArg(p.id)}, ${jsArg(p.name)}, ${usage})">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                    Xóa proxy
+                                </button>
+                            </div>
                         </td>
                     </tr>`;
                 });
@@ -3653,7 +3684,7 @@
                                 </h3>
                                 <button class="btn-create-server" onclick="openProxyModal()" title="Thêm proxy mới">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    <span>+ Thêm Proxy</span>
+                                    <span>Thêm Proxy</span>
                                 </button>
                             </div>
 
@@ -3665,7 +3696,7 @@
                                             <th style="width: 110px;">Loại</th>
                                             <th style="width: 130px;">Đang dùng</th>
                                             <th style="width: 200px;">Trạng thái test</th>
-                                            <th style="width: 210px; text-align: right;">Thao tác</th>
+                                            <th style="width: 60px;"></th>
                                         </tr>
                                     </thead>
                                     <tbody>${proxyRows}</tbody>
@@ -4035,19 +4066,21 @@
             }
         };
 
-        window.deleteProxy = async function(id, name, usage) {
-            let msg = `Xác nhận xóa proxy "${name}"?`;
-            if (usage > 0) msg += `\n${usage} server đang dùng proxy này sẽ chuyển về kết nối trực tiếp.`;
-            if (!confirm(msg)) return;
-            try {
-                const res = await fetch(`/api/proxies/${id}`, { method: 'DELETE' });
-                if (!res.ok) throw new Error('Lỗi xóa proxy');
-                showToast(`Đã xóa proxy "${name}"`);
-                await fetchProxies();
-                await refreshServerConfigs();
-            } catch(err) {
-                showToast(err.message);
-            }
+        window.deleteProxy = function(id, name, usage) {
+            const note = usage > 0
+                ? `${usage} server đang dùng proxy này sẽ chuyển về kết nối trực tiếp.`
+                : 'Hành động này không thể hoàn tác.';
+            openConfirmModal('Xóa Proxy', `Xác nhận xóa proxy <strong>${escapeHTML(name)}</strong>?<br><span style="color:#94a3b8;font-size:0.85rem;">${note}</span>`, async () => {
+                try {
+                    const res = await fetch(`/api/proxies/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Lỗi xóa proxy');
+                    showToast(`Đã xóa proxy "${name}"`);
+                    await fetchProxies();
+                    await refreshServerConfigs();
+                } catch(err) {
+                    showToast(err.message);
+                }
+            });
         };
 
         /* ============================================================
@@ -4110,21 +4143,6 @@
                 if (!res.ok) throw new Error('Không thể đổi tên group');
                 showToast(`Đã đổi tên group thành "${newName}"`);
                 closeModalEditGroup();
-                await fetchGroups();
-                await refreshServerConfigs();
-            } catch (err) {
-                showToast(err.message);
-            }
-        };
-
-        window.deleteGroup = async function(name, count) {
-            let msg = `Xác nhận xóa group "${name}"?`;
-            if (count > 0) msg += `\n${count} máy chủ thuộc group này sẽ chuyển về "Default".`;
-            if (!confirm(msg)) return;
-            try {
-                const res = await fetch(`/api/groups/${encodeURIComponent(name)}`, { method: 'DELETE' });
-                if (!res.ok) throw new Error('Lỗi xóa group');
-                showToast(`Đã xóa group "${name}"`);
                 await fetchGroups();
                 await refreshServerConfigs();
             } catch (err) {
@@ -4195,6 +4213,25 @@
             if (iconEye) iconEye.style.display = visible ? 'none' : '';
             if (iconEyeOff) iconEyeOff.style.display = visible ? '' : 'none';
         }
+
+        /* Mở hộp thoại chọn file của hệ điều hành (qua backend) để lấy đường dẫn tuyệt đối của SSH key */
+        window.pickSSHKeyFile = async function() {
+            const btn = document.getElementById('btn-pick-key');
+            const label = btn.querySelector('span');
+            btn.disabled = true;
+            label.textContent = 'Đang mở...';
+            try {
+                const res = await fetch('/api/pick-file', { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Không mở được hộp thoại chọn file');
+                if (data.path) document.getElementById('inp-srv-key').value = data.path;
+            } catch (err) {
+                showToast(err.message);
+            } finally {
+                btn.disabled = false;
+                label.textContent = 'Chọn file';
+            }
+        };
 
         window.togglePasswordVisibility = function() {
             const inp = document.getElementById('inp-srv-pass');
@@ -4292,6 +4329,244 @@
             closeConfirmModal();
         });
 
+        /* ============================================================
+           CHỌN NHIỀU & THAO TÁC HÀNG LOẠT (QUẢN LÝ SERVER / GROUP)
+           ============================================================ */
+        function syncSelectAll(cbId, visible, selected) {
+            const all = document.getElementById(cbId);
+            if (!all) return;
+            const n = visible.filter(x => selected.has(x)).length;
+            all.checked = visible.length > 0 && n === visible.length;
+            all.indeterminate = n > 0 && n < visible.length;
+        }
+
+        /* Tóm tắt danh sách tên cho popup xác nhận: tối đa 5 tên + "và N khác" */
+        function summarizeNames(names, unit) {
+            const shown = names.slice(0, 5).map(n => `<strong>${escapeHTML(n)}</strong>`).join(', ');
+            return names.length > 5 ? `${shown} và ${names.length - 5} ${unit} khác` : shown;
+        }
+
+        function pickerHTML(label, options) {
+            return `<label class="field-label" style="display:block;margin-top:12px;">${label}</label>
+                <select class="modal-input" id="bulk-pick" style="width:100%;">${options.map(o =>
+                    `<option value="${escapeHTML(o.value)}">${escapeHTML(o.text)}</option>`).join('')}</select>`;
+        }
+
+        async function postBulkServers(ids, body, okMsg) {
+            try {
+                const res = await fetch('/api/servers/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, ...body })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Thao tác hàng loạt thất bại');
+                showToast(okMsg(data.affected || 0));
+                await refreshServerConfigs();
+                return true;
+            } catch (err) {
+                showToast(err.message);
+                return false;
+            }
+        }
+
+        function serverNames(ids) {
+            const byId = {};
+            serverConfigs.forEach(s => { byId[s.id] = s; });
+            return ids.map(id => byId[id] ? (byId[id].label || byId[id].host || id) : id);
+        }
+
+        /* ---------- Server ---------- */
+        function updateServerBulkBar() {
+            const existing = new Set(serverConfigs.map(s => s.id));
+            selectedServerIds.forEach(id => { if (!existing.has(id)) selectedServerIds.delete(id); });
+            const bar = document.getElementById('srv-bulk-bar');
+            if (!bar) return;
+            bar.classList.toggle('show', selectedServerIds.size > 0);
+            document.getElementById('srv-bulk-count').textContent = `Đã chọn ${selectedServerIds.size} server`;
+            syncSelectAll('srv-select-all', visibleServerIds, selectedServerIds);
+        }
+
+        window.toggleServerSelect = function(id, cb) {
+            if (cb.checked) selectedServerIds.add(id); else selectedServerIds.delete(id);
+            cb.closest('tr').classList.toggle('row-selected', cb.checked);
+            updateServerBulkBar();
+        };
+
+        window.toggleAllServers = function(checked) {
+            visibleServerIds.forEach(id => { if (checked) selectedServerIds.add(id); else selectedServerIds.delete(id); });
+            document.querySelectorAll('.srv-row-cb').forEach(cb => {
+                cb.checked = checked;
+                cb.closest('tr').classList.toggle('row-selected', checked);
+            });
+            updateServerBulkBar();
+        };
+
+        window.clearServerSelection = function() {
+            selectedServerIds.clear();
+            toggleAllServers(false);
+        };
+
+        window.bulkServersDelete = function() {
+            const ids = [...selectedServerIds];
+            if (ids.length === 0) return;
+            openConfirmModal('Xóa Server Hàng Loạt', `Xác nhận xóa <strong>${ids.length}</strong> server: ${summarizeNames(serverNames(ids), 'server')}?<br><span style="color:#94a3b8;font-size:0.85rem;">Hành động này không thể hoàn tác.</span>`, async () => {
+                if (await postBulkServers(ids, { action: 'delete' }, n => `Đã xóa ${n} server`)) {
+                    ids.forEach(id => selectedServerIds.delete(id));
+                    updateServerBulkBar();
+                }
+            });
+        };
+
+        window.bulkServersSetGroup = function() {
+            const ids = [...selectedServerIds];
+            if (ids.length === 0) return;
+            const groups = systemGroups.length ? systemGroups : ['Default'];
+            openConfirmModal('Đổi Group Hàng Loạt', `Chuyển <strong>${ids.length}</strong> server đã chọn sang group:` +
+                pickerHTML('Group đích', groups.map(g => ({ value: g, text: g }))), () => {
+                const group = document.getElementById('bulk-pick').value;
+                postBulkServers(ids, { action: 'set_group', group }, n => `Đã chuyển ${n} server sang group "${group}"`);
+            });
+        };
+
+        function confirmSetProxy(ids, scopeHTML) {
+            if (ids.length === 0) { showToast('Không có server nào để gán proxy'); return; }
+            if (proxyList.length === 0) { showToast('Chưa có proxy nào — tạo proxy trong Cài đặt trước'); return; }
+            openConfirmModal('Gán Proxy Hàng Loạt', `Gán proxy cho ${scopeHTML}:` +
+                pickerHTML('Proxy', proxyList.map(p => ({ value: p.id, text: `${p.name} (${p.type}://${p.host}:${p.port})` }))) +
+                `<br><span style="color:#94a3b8;font-size:0.85rem;">Các server sẽ kết nối lại qua proxy mới.</span>`, () => {
+                const proxyId = document.getElementById('bulk-pick').value;
+                const p = proxyList.find(x => x.id === proxyId);
+                postBulkServers(ids, { action: 'set_proxy', proxy_id: proxyId }, n => `Đã gán proxy "${p ? p.name : proxyId}" cho ${n} server`);
+            });
+        }
+
+        function confirmClearProxy(ids, scopeHTML) {
+            const withProxy = serverConfigs.filter(s => ids.includes(s.id) && s.proxy_id).map(s => s.id);
+            if (withProxy.length === 0) { showToast('Các server đã chọn đều đang kết nối trực tiếp'); return; }
+            openConfirmModal('Bỏ Proxy Hàng Loạt', `Bỏ proxy của <strong>${withProxy.length}</strong> server (${scopeHTML}) — chuyển về kết nối trực tiếp?`, () => {
+                postBulkServers(withProxy, { action: 'set_proxy', proxy_id: '' }, n => `Đã bỏ proxy cho ${n} server`);
+            });
+        }
+
+        window.bulkServersSetProxy = function() {
+            const ids = [...selectedServerIds];
+            confirmSetProxy(ids, `<strong>${ids.length}</strong> server đã chọn`);
+        };
+
+        window.bulkServersClearProxy = function() {
+            const ids = [...selectedServerIds];
+            confirmClearProxy(ids, 'trong số đã chọn');
+        };
+
+        /* ---------- Group ---------- */
+        function updateGroupBulkBar() {
+            selectedGroups.forEach(g => { if (!systemGroups.includes(g)) selectedGroups.delete(g); });
+            const bar = document.getElementById('grp-bulk-bar');
+            if (!bar) return;
+            bar.classList.toggle('show', selectedGroups.size > 0);
+            const n = serversInSelectedGroups().length;
+            document.getElementById('grp-bulk-count').textContent = `Đã chọn ${selectedGroups.size} group (${n} server)`;
+            syncSelectAll('grp-select-all', systemGroups, selectedGroups);
+        }
+
+        function serversInSelectedGroups() {
+            return serverConfigs.filter(s => selectedGroups.has(s.group || 'Default')).map(s => s.id);
+        }
+
+        window.toggleGroupSelect = function(g, cb) {
+            if (cb.checked) selectedGroups.add(g); else selectedGroups.delete(g);
+            cb.closest('tr').classList.toggle('row-selected', cb.checked);
+            updateGroupBulkBar();
+        };
+
+        window.toggleAllGroups = function(checked) {
+            systemGroups.forEach(g => { if (checked) selectedGroups.add(g); else selectedGroups.delete(g); });
+            document.querySelectorAll('.grp-row-cb').forEach(cb => {
+                cb.checked = checked;
+                cb.closest('tr').classList.toggle('row-selected', checked);
+            });
+            updateGroupBulkBar();
+        };
+
+        window.clearGroupSelection = function() {
+            selectedGroups.clear();
+            toggleAllGroups(false);
+        };
+
+        window.bulkGroupsMove = function() {
+            const ids = serversInSelectedGroups();
+            if (ids.length === 0) { showToast('Các group đã chọn không có server nào'); return; }
+            const groups = systemGroups.length ? systemGroups : ['Default'];
+            openConfirmModal('Chuyển Server Sang Group', `Chuyển toàn bộ <strong>${ids.length}</strong> server của ${summarizeNames([...selectedGroups], 'group')} sang group:` +
+                pickerHTML('Group đích', groups.map(g => ({ value: g, text: g }))), () => {
+                const group = document.getElementById('bulk-pick').value;
+                postBulkServers(ids, { action: 'set_group', group }, n => `Đã chuyển ${n} server sang group "${group}"`);
+            });
+        };
+
+        window.bulkGroupsSetProxy = function() {
+            const ids = serversInSelectedGroups();
+            confirmSetProxy(ids, `<strong>${ids.length}</strong> server thuộc ${summarizeNames([...selectedGroups], 'group')}`);
+        };
+
+        window.bulkGroupsClearProxy = function() {
+            const ids = serversInSelectedGroups();
+            confirmClearProxy(ids, `thuộc ${summarizeNames([...selectedGroups], 'group')}`);
+        };
+
+        window.bulkGroupsDelete = function() {
+            const groups = [...selectedGroups].filter(g => g !== 'Default');
+            if (groups.length === 0) { showToast('Không thể xóa group Default'); return; }
+            const moved = serverConfigs.filter(s => groups.includes(s.group || 'Default')).length;
+            const notes = [];
+            if (selectedGroups.has('Default')) notes.push('Group <strong>Default</strong> sẽ được giữ lại.');
+            if (moved > 0) notes.push(`<span style="color:#fbbf24;">${moved} server trong các group này sẽ chuyển về group Default.</span>`);
+            notes.push('Hành động này không thể hoàn tác.');
+            openConfirmModal('Xóa Group Hàng Loạt', `Xác nhận xóa <strong>${groups.length}</strong> group: ${summarizeNames(groups, 'group')}?<br><span style="color:#94a3b8;font-size:0.85rem;">${notes.join('<br>')}</span>`, async () => {
+                try {
+                    const res = await fetch('/api/groups/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ groups })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.error || 'Không thể xóa group');
+                    showToast(`Đã xóa ${data.removed || 0} group`);
+                    groups.forEach(g => selectedGroups.delete(g));
+                    if (groups.includes(selectedCluster)) {
+                        selectedCluster = 'all';
+                        localStorage.setItem('wb_selected_cluster', 'all');
+                    }
+                    await fetchGroups();
+                    await refreshServerConfigs();
+                } catch (err) {
+                    showToast(err.message);
+                }
+            });
+        };
+
+        /* ---------- Popup: server đang dùng 1 proxy ---------- */
+        window.showProxyUsers = function(proxyId) {
+            const p = proxyList.find(x => x.id === proxyId);
+            const users = serverConfigs.filter(s => s.proxy_id === proxyId);
+            document.getElementById('info-title').textContent = `Server dùng proxy "${p ? p.name : proxyId}" (${users.length})`;
+            document.getElementById('info-body').innerHTML = users.length === 0
+                ? `<p style="color:#94a3b8;margin:0;padding:10px 0;">Không có server nào đang dùng proxy này.</p>`
+                : `<table class="wb-table" style="width:100%;">
+                    <thead><tr><th style="width:44px;text-align:center;">STT</th><th>Tên Server</th><th>Host</th><th>Group</th></tr></thead>
+                    <tbody>${users.map((s, i) => `<tr>
+                        <td style="text-align:center;font-family:var(--font-mono);color:#cbd5e1;">${i + 1}</td>
+                        <td><strong style="color:#fff;">${escapeHTML(s.label || s.id)}</strong></td>
+                        <td style="font-family:var(--font-mono);color:#cbd5e1;">${escapeHTML(s.host || '')}:${s.port || 22}</td>
+                        <td><span class="group-tag-inline" style="margin-left:0;">${escapeHTML(s.group || 'Default')}</span></td>
+                    </tr>`).join('')}</tbody></table>`;
+            document.getElementById('modal-info').classList.add('active');
+        };
+        window.closeInfoModal = function() {
+            document.getElementById('modal-info').classList.remove('active');
+        };
+
         window.deleteServer = function(id, host) {
             openConfirmModal('Xóa Server', `Xác nhận xóa server <strong>${escapeHTML(host)}</strong>?<br><span style="color:#94a3b8;font-size:0.85rem;">Hành động này không thể hoàn tác.</span>`, async () => {
                 try {
@@ -4312,9 +4587,9 @@
                 showToast('Group này đang chứa server, không thể xóa!');
                 return;
             }
-            openConfirmModal('Xóa Group', `Xác nhận xóa group "${groupName}"?`, async () => {
+            openConfirmModal('Xóa Group', `Xác nhận xóa group <strong>${escapeHTML(groupName)}</strong>?<br><span style="color:#94a3b8;font-size:0.85rem;">Hành động này không thể hoàn tác.</span>`, async () => {
                 try {
-                    const res = await fetch(`/api/groups/${groupName}`, { method: 'DELETE' });
+                    const res = await fetch(`/api/groups/${encodeURIComponent(groupName)}`, { method: 'DELETE' });
                     if (!res.ok) throw new Error('Không thể xóa group');
                     showToast(`Đã xóa group "${groupName}"`);
                     systemGroups = systemGroups.filter(g => g !== groupName);
@@ -4344,8 +4619,6 @@
 
         /* Startup — Nạp dữ liệu cấu hình song song trước */
         document.getElementById('top-interval-select').value = String(refreshIntervalMs);
-        const startupLabelEl = document.getElementById('wb-live-label');
-        if (startupLabelEl) startupLabelEl.textContent = 'Live ' + (refreshIntervalMs / 1000) + 's';
         
         Promise.all([fetchGroups(), fetchProxies(), refreshServerConfigs()]).then(() => {
             connectWebSocket();

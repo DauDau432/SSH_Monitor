@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,7 +19,7 @@ import (
 
 // AppVersion — Phiên bản hiện tại của ứng dụng (định dạng YYYY.M.D).
 // Mỗi lần phát hành bản mới, sửa hằng số này thành ngày phát hành.
-const AppVersion = "2026.9.27"
+const AppVersion = "2026.10.7"
 
 const (
 	// GitHubRepoOwner / GitHubRepoName — Repo nguồn để kiểm tra cập nhật
@@ -82,9 +83,9 @@ type githubRelease struct {
 
 // githubCommit — Rút gọn response từ GitHub Commits API
 type githubCommit struct {
-	SHA    string `json:"sha"`
+	SHA     string `json:"sha"`
 	HTMLURL string `json:"html_url"`
-	Commit struct {
+	Commit  struct {
 		Message string `json:"message"`
 		Author  struct {
 			Date string `json:"date"`
@@ -186,9 +187,9 @@ func checkForUpdate(force bool) *updateInfo {
 	}
 
 	// Có bản mới khi: có bản phát hành mới hơn HIỆN TẠI,
-	// hoặc có commit trên main sau ngày của phiên bản hiện tại.
+	// hoặc có commit trên main mới hơn bản đang chạy.
 	info.HasUpdate = compareVersions(AppVersion, info.LatestVersion) ||
-		commitNewerThanVersion(info.CommitDate)
+		commitIsNewer(info.CommitSHA, info.CommitDate)
 
 	if len(errs) > 0 && info.ReleaseURL == "" && info.CommitURL == "" {
 		info.Error = strings.Join(errs, "; ")
@@ -197,6 +198,39 @@ func checkForUpdate(force bool) *updateInfo {
 	updateCacheData = info
 	updateCacheTime = time.Now()
 	return info
+}
+
+// buildVCS — Commit và thời điểm commit của source lúc build (go build trong
+// thư mục git tự nhúng vcs.revision/vcs.time). Không có (build ngoài git) → rỗng.
+func buildVCS() (revision string, commitTime time.Time) {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", time.Time{}
+	}
+	for _, s := range bi.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			revision = s.Value
+		case "vcs.time":
+			commitTime, _ = time.Parse(time.RFC3339, s.Value)
+		}
+	}
+	return revision, commitTime
+}
+
+// commitIsNewer — Commit mới nhất trên main có mới hơn bản đang chạy không.
+// Ưu tiên so với commit lúc build (người dùng build từ source nên AppVersion
+// có thể không được sửa); không có thông tin build thì so với ngày AppVersion.
+func commitIsNewer(sha, commitDate string) bool {
+	rev, built := buildVCS()
+	if rev != "" && sha != "" && strings.HasPrefix(sha, rev) {
+		return false
+	}
+	if built.IsZero() {
+		return commitNewerThanVersion(commitDate)
+	}
+	t, err := time.Parse(time.RFC3339, commitDate)
+	return err == nil && t.After(built)
 }
 
 // commitNewerThanVersion — Ngày commit có sau ngày trong AppVersion (YYYY.M.D) không

@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -173,21 +174,24 @@ func (app *App) openSSH(id string) (*ssh.Client, ServerConfig, error) {
 	return client, cfg, nil
 }
 
-// runSSHOnClient — Chạy lệnh trên client có sẵn, có timeout
+// runSSHOnClient — Chạy lệnh trên client có sẵn, có timeout.
+// Tạo session nằm trong timeout luôn: server treo ở bước mở channel cũng không
+// giữ goroutine mãi. Hết giờ chỉ cần trả lỗi — mọi caller đều defer client.Close()
+// nên goroutine sẽ thoát khi connection đóng.
 func runSSHOnClient(client *ssh.Client, cmd string, timeout time.Duration) ([]byte, error) {
-	session, err := client.NewSession()
-	if err != nil {
-		return nil, fmt.Errorf("new session: %w", err)
-	}
-	defer session.Close()
-
 	type result struct {
 		out []byte
 		err error
 	}
 	ch := make(chan result, 1)
 	go func() {
-		out, err := session.CombinedOutput(cmd)
+		session, err := client.NewSession()
+		if err != nil {
+			ch <- result{nil, fmt.Errorf("new session: %w", err)}
+			return
+		}
+		defer session.Close()
+		out, err := session.CombinedOutput(shCmd(cmd))
 		ch <- result{out, err}
 	}()
 
@@ -202,7 +206,6 @@ func runSSHOnClient(client *ssh.Client, cmd string, timeout time.Duration) ([]by
 		}
 		return res.out, nil
 	case <-time.After(timeout):
-		session.Close()
 		return nil, fmt.Errorf("lệnh SSH quá thời gian chờ %v", timeout)
 	}
 }
@@ -210,6 +213,48 @@ func runSSHOnClient(client *ssh.Client, cmd string, timeout time.Duration) ([]by
 // shellQuote — Bọc chuỗi trong nháy đơn an toàn cho shell POSIX
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// shCmd — Chạy script bằng /bin/sh thay vì login shell của user: NAS/distro có
+// thể đặt zsh (TrueNAS), fish, csh... làm shell mặc định, cú pháp if/for/$(...)
+// của script sẽ lỗi hoặc glob không khớp bị báo lỗi (zsh nomatch).
+func shCmd(script string) string {
+	return "/bin/sh -c " + shellQuote(script)
+}
+
+// idleGuard — Đóng SSH client khi truyền dữ liệu không tiến triển trong khoảng
+// idle. Khác timeout cố định: file lớn qua đường chậm vẫn chạy được, chỉ dừng
+// khi thật sự bị treo.
+type idleGuard struct {
+	t     *time.Timer
+	idle  time.Duration
+	fired atomic.Bool
+}
+
+func newIdleGuard(client *ssh.Client, idle time.Duration) *idleGuard {
+	g := &idleGuard{idle: idle}
+	g.t = time.AfterFunc(idle, func() {
+		g.fired.Store(true)
+		client.Close()
+	})
+	return g
+}
+
+func (g *idleGuard) touch() { g.t.Reset(g.idle) }
+func (g *idleGuard) stop()  { g.t.Stop() }
+
+// idleReader — Mỗi lần đọc được dữ liệu thì gia hạn idleGuard
+type idleReader struct {
+	r io.Reader
+	g *idleGuard
+}
+
+func (ir idleReader) Read(p []byte) (int, error) {
+	n, err := ir.r.Read(p)
+	if n > 0 {
+		ir.g.touch()
+	}
+	return n, err
 }
 
 // cleanRemotePath — Chuẩn hóa đường dẫn remote: tuyệt đối, không "..", không rỗng
@@ -854,44 +899,36 @@ func (app *App) readSourceFile(id, path string) ([]byte, int64, string, error) {
 	}
 	defer session.Close()
 
-	// Đọc qua pipe + timeout để file lớn không treo vô hạn
+	// Đọc qua pipe; quá syncCmdTimeout không nhận thêm byte nào thì đóng kết
+	// nối (không giới hạn tổng thời gian để file lớn qua đường chậm vẫn đọc được)
 	stdout, err := session.StdoutPipe()
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("stdout pipe: %w", err)
 	}
-	if err := session.Start("cat " + shellQuote(path)); err != nil {
+	guard := newIdleGuard(client, syncCmdTimeout)
+	defer guard.stop()
+	if err := session.Start(shCmd("cat " + shellQuote(path))); err != nil {
 		return nil, 0, "", fmt.Errorf("start cat: %w", err)
 	}
 
-	type readResult struct {
-		data []byte
-		err  error
+	// Giới hạn cứng: không cho phép đọc vượt quá trần
+	data, err := io.ReadAll(io.LimitReader(idleReader{stdout, guard}, SyncMaxFileSize+1))
+	if guard.fired.Load() {
+		return nil, 0, "", fmt.Errorf("đọc file bị treo: không nhận được dữ liệu trong %v", syncCmdTimeout)
 	}
-	ch := make(chan readResult, 1)
-	go func() {
-		// Giới hạn cứng: không cho phép đọc vượt quá trần
-		buf, err := io.ReadAll(io.LimitReader(stdout, SyncMaxFileSize+1))
-		ch <- readResult{buf, err}
-	}()
-
-	var data []byte
-	select {
-	case res := <-ch:
-		if res.err != nil {
-			session.Close()
-			return nil, 0, "", fmt.Errorf("đọc dữ liệu: %w", res.err)
-		}
-		data = res.data
-	case <-time.After(syncCmdTimeout):
-		session.Close()
-		return nil, 0, "", fmt.Errorf("đọc file quá thời gian chờ %v", syncCmdTimeout)
+	if err != nil {
+		return nil, 0, "", fmt.Errorf("đọc dữ liệu: %w", err)
+	}
+	if int64(len(data)) > SyncMaxFileSize {
+		// Trả về luôn, không Wait: cat vẫn đang ghi; defer client.Close() sẽ dừng nó
+		return nil, 0, "", fmt.Errorf("file vượt giới hạn %s", humanBytes(SyncMaxFileSize))
 	}
 
 	if waitErr := session.Wait(); waitErr != nil {
+		if guard.fired.Load() {
+			return nil, 0, "", fmt.Errorf("cat trên máy nguồn bị treo quá %v", syncCmdTimeout)
+		}
 		return nil, 0, "", fmt.Errorf("cat trên máy nguồn lỗi: %w", waitErr)
-	}
-	if int64(len(data)) > SyncMaxFileSize {
-		return nil, 0, "", fmt.Errorf("file vượt giới hạn %s", humanBytes(SyncMaxFileSize))
 	}
 
 	sum := md5.Sum(data)
@@ -935,8 +972,9 @@ if [ "$(stat -c '%%s' "$T" 2>/dev/null | tr -d '[:space:]')" != "%d" ]; then
   exit 1
 fi
 if [ -f "$P" ]; then
-  chown --reference="$P" "$T" 2>/dev/null
-  chmod --reference="$P" "$T" 2>/dev/null
+  # stat -c thay cho --reference: BusyBox (Synology, QNAP...) không có --reference
+  chown "$(stat -c '%%u:%%g' "$P")" "$T" 2>/dev/null
+  chmod "$(stat -c '%%a' "$P")" "$T" 2>/dev/null
 fi
 mv -f "$T" "$P" || exit 1
 trap - EXIT`, q, size)
@@ -944,7 +982,9 @@ trap - EXIT`, q, size)
 	var stderr bytes.Buffer
 	session.Stderr = &stderr
 
-	if err := session.Start(cmd); err != nil {
+	guard := newIdleGuard(client, syncCmdTimeout)
+	defer guard.stop()
+	if err := session.Start(shCmd(cmd)); err != nil {
 		job.setTargetStatus(idx, "failed", "Chạy lệnh ghi file lỗi: "+err.Error())
 		return
 	}
@@ -966,6 +1006,7 @@ trap - EXIT`, q, size)
 				if _, werr := pw.Write(buf[:n]); werr != nil {
 					return
 				}
+				guard.touch()
 				progress += int64(n)
 				job.setTargetProgress(idx, progress)
 			}
@@ -979,6 +1020,11 @@ trap - EXIT`, q, size)
 	stdin.Close()
 
 	waitErr := session.Wait()
+	guard.stop()
+	if guard.fired.Load() {
+		job.setTargetStatus(idx, "failed", fmt.Sprintf("Ghi file bị treo: không tiến triển trong %v", syncCmdTimeout))
+		return
+	}
 	if copyErr != nil {
 		job.setTargetStatus(idx, "failed", "Ghi dữ liệu lỗi: "+copyErr.Error())
 		return

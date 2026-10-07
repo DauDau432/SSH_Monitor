@@ -80,7 +80,13 @@ func dialThroughProxy(targetAddr string, p *ProxyConfig, timeout time.Duration) 
 	case "socks4":
 		err = socks4Handshake(conn, targetAddr, p)
 	case "http", "https":
-		err = httpConnectHandshake(conn, targetAddr, p)
+		var br *bufio.Reader
+		br, err = httpConnectHandshake(conn, targetAddr, p)
+		if err == nil && br.Buffered() > 0 {
+			// SSH server gửi banner ngay khi kết nối → banner có thể đến chung
+			// gói với response CONNECT; đọc tiếp từ buffer để không mất byte nào
+			conn = &bufferedConn{Conn: conn, r: br}
+		}
 	default:
 		err = fmt.Errorf("unsupported proxy type: %s", p.Type)
 	}
@@ -324,14 +330,23 @@ func socks4ErrorText(code byte) string {
 
 // ========================== HTTP/HTTPS CONNECT ==========================
 
-func httpConnectHandshake(conn net.Conn, targetAddr string, p *ProxyConfig) error {
+// bufferedConn — net.Conn đọc trước phần dữ liệu đã nằm sẵn trong bufio.Reader
+type bufferedConn struct {
+	net.Conn
+	r *bufio.Reader
+}
+
+func (c *bufferedConn) Read(b []byte) (int, error) { return c.r.Read(b) }
+
+// httpConnectHandshake — Trả về reader đã đọc response; có thể còn byte tunnel trong buffer
+func httpConnectHandshake(conn net.Conn, targetAddr string, p *ProxyConfig) (*bufio.Reader, error) {
 	host, portStr, err := net.SplitHostPort(targetAddr)
 	if err != nil {
-		return fmt.Errorf("invalid target address %q: %w", targetAddr, err)
+		return nil, fmt.Errorf("invalid target address %q: %w", targetAddr, err)
 	}
 	// Chuẩn hóa: port mặc định theo URL không áp dụng cho CONNECT — bắt buộc có port
 	if _, err := strconv.Atoi(portStr); err != nil {
-		return fmt.Errorf("invalid target port %q", portStr)
+		return nil, fmt.Errorf("invalid target port %q", portStr)
 	}
 	hostPort := net.JoinHostPort(host, portStr)
 
@@ -345,29 +360,24 @@ func httpConnectHandshake(conn net.Conn, targetAddr string, p *ProxyConfig) erro
 	sb.WriteString("\r\n")
 
 	if _, err := conn.Write([]byte(sb.String())); err != nil {
-		return fmt.Errorf("http CONNECT request: %w", err)
+		return nil, fmt.Errorf("http CONNECT request: %w", err)
 	}
 
 	// Đọc response header
 	br := bufio.NewReader(conn)
 	resp, err := http.ReadResponse(br, nil)
 	if err != nil {
-		return fmt.Errorf("http CONNECT reply: %w", err)
+		return nil, fmt.Errorf("http CONNECT reply: %w", err)
 	}
 	resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 407 {
-			return fmt.Errorf("http proxy: yêu cầu xác thực (407) — kiểm tra lại username/password proxy")
+			return nil, fmt.Errorf("http proxy: yêu cầu xác thực (407) — kiểm tra lại username/password proxy")
 		}
-		return fmt.Errorf("http proxy: từ chối CONNECT tới %s (HTTP %d)", targetAddr, resp.StatusCode)
+		return nil, fmt.Errorf("http proxy: từ chối CONNECT tới %s (HTTP %d)", targetAddr, resp.StatusCode)
 	}
-
-	// Nếu proxy trả body thừa sau header (hiếm), tunnel sẽ hỏng — báo lỗi rõ ràng
-	if br.Buffered() > 0 {
-		return fmt.Errorf("http proxy: gửi %d byte thừa sau CONNECT response", br.Buffered())
-	}
-	return nil
+	return br, nil
 }
 
 // ========================== Proxy API Handlers ==========================
