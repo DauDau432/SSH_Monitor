@@ -11,8 +11,16 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # App chỉ chạy trên Windows (setConsoleTitle, hộp thoại chọn file, icon exe)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
+      # Giữ LF khi checkout, nếu không gofmt sẽ báo mọi file (CRLF)
+      - name: Disable CRLF conversion
+        run: git config --global core.autocrlf false
+
       - name: Checkout
         uses: actions/checkout@v4
 
