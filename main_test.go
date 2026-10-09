@@ -71,3 +71,22 @@ func TestSaveConfigAtomic(t *testing.T) {
 		t.Fatalf("đọc lại config: err=%v servers=%d", err, len(app2.config.Servers))
 	}
 }
+
+func TestHostPort(t *testing.T) {
+	cases := []struct {
+		host string
+		port int
+		want string
+	}{
+		{"103.1.2.3", 22, "103.1.2.3:22"},
+		{"vps.example.com", 2222, "vps.example.com:2222"},
+		{"2001:db8::1", 22, "[2001:db8::1]:22"},
+		{"[2001:db8::1]", 22, "[2001:db8::1]:22"},
+		{" fe80::1%eth0 ", 22, "[fe80::1%eth0]:22"},
+	}
+	for _, c := range cases {
+		if got := hostPort(c.host, c.port); got != c.want {
+			t.Errorf("hostPort(%q, %d) = %q, muốn %q", c.host, c.port, got, c.want)
+		}
+	}
+}

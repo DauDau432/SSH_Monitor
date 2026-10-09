@@ -282,7 +282,7 @@ func (a *MonitorAgent) connect() {
 		return
 	}
 
-	addr := fmt.Sprintf("%s:%d", a.config.Host, a.config.Port)
+	addr := hostPort(a.config.Host, a.config.Port)
 
 	conn, err := dialThroughProxy(addr, a.proxy, SSHDialTimeout)
 	if err != nil {
@@ -1348,6 +1348,20 @@ func (app *App) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetServers — GET /api/servers
+// normalizeHost — Bỏ khoảng trắng và cặp [] quanh IPv6 ("[2001:db8::1]" → "2001:db8::1")
+func normalizeHost(h string) string {
+	h = strings.TrimSpace(h)
+	if strings.HasPrefix(h, "[") && strings.HasSuffix(h, "]") {
+		h = h[1 : len(h)-1]
+	}
+	return h
+}
+
+// hostPort — Ghép host:port, tự thêm [] cho IPv6 ("[2001:db8::1]:22")
+func hostPort(host string, port int) string {
+	return net.JoinHostPort(normalizeHost(host), strconv.Itoa(port))
+}
+
 func (app *App) handleGetServers(w http.ResponseWriter, r *http.Request) {
 	app.configMu.RLock()
 	defer app.configMu.RUnlock()
@@ -1366,7 +1380,7 @@ func fetchRemoteHostname(cfg ServerConfig, proxy *ProxyConfig) string {
 		return ""
 	}
 
-	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	addr := hostPort(cfg.Host, cfg.Port)
 	conn, err := dialThroughProxy(addr, proxy, SSHDialTimeout)
 	if err != nil {
 		log.Printf("[%s] Hostname probe dial failed: %v", cfg.Host, err)
@@ -1405,6 +1419,7 @@ func (app *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validation
+	cfg.Host = normalizeHost(cfg.Host)
 	if cfg.Host == "" {
 		httpError(w, "Host is required", http.StatusBadRequest)
 		return
@@ -1464,6 +1479,12 @@ func (app *App) handleUpdateServer(w http.ResponseWriter, r *http.Request) {
 	var cfg ServerConfig
 	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
 		httpError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	cfg.Host = normalizeHost(cfg.Host)
+	if cfg.Host == "" {
+		httpError(w, "Host is required", http.StatusBadRequest)
 		return
 	}
 

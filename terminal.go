@@ -184,7 +184,7 @@ func dialSSHClient(cfg ServerConfig, proxy *ProxyConfig) (*ssh.Client, error) {
 		return nil, fmt.Errorf("auth config: %w", err)
 	}
 
-	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	addr := hostPort(cfg.Host, cfg.Port)
 	netConn, err := dialThroughProxy(addr, proxy, SSHDialTimeout)
 	if err != nil {
 		if proxy != nil {

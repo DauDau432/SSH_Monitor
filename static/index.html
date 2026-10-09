@@ -1638,7 +1638,7 @@
                     <div class="form-row-2">
                         <div>
                             <label class="field-label">Địa chỉ Host / IP</label>
-                            <input class="modal-input" id="inp-srv-host" placeholder="103.xxx.xxx.xxx" required>
+                            <input class="modal-input" id="inp-srv-host" placeholder="IPv4, IPv6 hoặc tên miền" required>
                         </div>
                         <div>
                             <label class="field-label">Cổng SSH (Port)</label>
@@ -1967,6 +1967,11 @@
                 .replace(/'/g, '&#39;');
         }
 
+        // hostPort — Ghép host:port, IPv6 thì bọc [] ("[2001:db8::1]:22")
+        function hostPort(host, port) {
+            return (String(host).includes(':') ? `[${host}]` : host) + ':' + port;
+        }
+
         /* Nạp danh sách Server từ Backend (Không phụ thuộc WebSocket delay) */
         async function refreshServerConfigs() {
             try {
@@ -2264,7 +2269,7 @@
 
             const isOnline = s.status === 'online';
             const hostLabel = s.host || '127.0.0.1';
-            const fullAddr = `${hostLabel}:${s.port || 22}`;
+            const fullAddr = hostPort(hostLabel, s.port || 22);
             const groupName = s.group || 'Default';
 
             const cpuClass = cpu > 85 ? 'danger' : 'cpu';
@@ -3604,7 +3609,7 @@
                     <tr>
                         <td>
                             <div style="font-weight: 600; color: #f1f5f9;">${escapeHTML(p.name)}</div>
-                            <div style="font-family: var(--font-mono); font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">${escapeHTML(p.type)}://${escapeHTML(p.host)}:${p.port}${p.username ? ' · có auth' : ''}</div>
+                            <div style="font-family: var(--font-mono); font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">${escapeHTML(p.type)}://${escapeHTML(hostPort(p.host, p.port))}${p.username ? ' · có auth' : ''}</div>
                         </td>
                         <td><span style="font-family: var(--font-mono); font-size: 0.78rem; color: #7dd3fc; background: rgba(125,211,252,0.1); padding: 2px 8px; border-radius: 4px;">${escapeHTML(p.type.toUpperCase())}</span></td>
                         <td style="font-family: var(--font-mono); color: #cbd5e1; white-space: nowrap;">${usage > 0
@@ -4198,7 +4203,7 @@
             const cur = sel.value;
             let opts = '<option value="">Trực tiếp (không qua proxy)</option>';
             proxyList.forEach(p => {
-                opts += `<option value="${escapeHTML(p.id)}">${escapeHTML(p.name)} (${escapeHTML(p.type)}://${escapeHTML(p.host)}:${p.port})</option>`;
+                opts += `<option value="${escapeHTML(p.id)}">${escapeHTML(p.name)} (${escapeHTML(p.type)}://${escapeHTML(hostPort(p.host, p.port))})</option>`;
             });
             sel.innerHTML = opts;
             sel.value = cur;
@@ -4433,7 +4438,7 @@
             if (ids.length === 0) { showToast('Không có server nào để gán proxy'); return; }
             if (proxyList.length === 0) { showToast('Chưa có proxy nào — tạo proxy trong Cài đặt trước'); return; }
             openConfirmModal('Gán Proxy Hàng Loạt', `Gán proxy cho ${scopeHTML}:` +
-                pickerHTML('Proxy', proxyList.map(p => ({ value: p.id, text: `${p.name} (${p.type}://${p.host}:${p.port})` }))) +
+                pickerHTML('Proxy', proxyList.map(p => ({ value: p.id, text: `${p.name} (${p.type}://${hostPort(p.host, p.port)})` }))) +
                 `<br><span style="color:#94a3b8;font-size:0.85rem;">Các server sẽ kết nối lại qua proxy mới.</span>`, () => {
                 const proxyId = document.getElementById('bulk-pick').value;
                 const p = proxyList.find(x => x.id === proxyId);
@@ -4558,7 +4563,7 @@
                     <tbody>${users.map((s, i) => `<tr>
                         <td style="text-align:center;font-family:var(--font-mono);color:#cbd5e1;">${i + 1}</td>
                         <td><strong style="color:#fff;">${escapeHTML(s.label || s.id)}</strong></td>
-                        <td style="font-family:var(--font-mono);color:#cbd5e1;">${escapeHTML(s.host || '')}:${s.port || 22}</td>
+                        <td style="font-family:var(--font-mono);color:#cbd5e1;">${escapeHTML(hostPort(s.host || '', s.port || 22))}</td>
                         <td><span class="group-tag-inline" style="margin-left:0;">${escapeHTML(s.group || 'Default')}</span></td>
                     </tr>`).join('')}</tbody></table>`;
             document.getElementById('modal-info').classList.add('active');

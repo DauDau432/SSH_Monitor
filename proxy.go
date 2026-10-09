@@ -40,7 +40,7 @@ func dialThroughProxy(targetAddr string, p *ProxyConfig, timeout time.Duration) 
 		return net.DialTimeout("tcp", targetAddr, timeout)
 	}
 
-	proxyAddr := net.JoinHostPort(p.Host, strconv.Itoa(p.Port))
+	proxyAddr := hostPort(p.Host, p.Port)
 
 	var conn net.Conn
 	var err error
@@ -551,7 +551,7 @@ func (app *App) handleTestProxy(w http.ResponseWriter, r *http.Request) {
 // validateProxy — Kiểm tra dữ liệu proxy hợp lệ
 func validateProxy(p *ProxyConfig) error {
 	p.Name = strings.TrimSpace(p.Name)
-	p.Host = strings.TrimSpace(p.Host)
+	p.Host = normalizeHost(p.Host)
 	p.Type = strings.ToLower(strings.TrimSpace(p.Type))
 
 	if p.Host == "" {
@@ -571,7 +571,7 @@ func validateProxy(p *ProxyConfig) error {
 		return fmt.Errorf("Loại proxy không hỗ trợ: %s (chọn: %s)", p.Type, strings.Join(ProxyTypes, ", "))
 	}
 	if p.Name == "" {
-		p.Name = p.Type + "://" + p.Host + ":" + strconv.Itoa(p.Port)
+		p.Name = p.Type + "://" + hostPort(p.Host, p.Port)
 	}
 	return nil
 }
